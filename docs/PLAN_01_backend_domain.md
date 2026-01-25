@@ -14,4 +14,5 @@
 4. [ ] - Draft aggregate boundaries and ownership (who owns what data and rules).
 5. [ ] - Identify required API endpoints at a high level (no implementation yet).
 6. [ ] - Document environment config policy (.env in .gitignore, .env.example committed).
-7. [ ] - Quick QA: sanity check against use cases and login/access rules.
+7. [ ] - Seed initial SUPER_ADMIN user (super.admin@example.com / passwrod123) in init database.
+8. [ ] - Quick QA: sanity check against use cases and login/access rules.

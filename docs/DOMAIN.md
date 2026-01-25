@@ -254,6 +254,13 @@ Example accessToken payload:
 - CompanyApplicationAccess 1 Company, 1 ApplicationVersion
 - UserAppInstallation 1 User, 1 Device, 1 ApplicationVersion
 
+## Aggregate Drafts (initial)
+
+- Company aggregate: Company (root) with Users and RegistrationRequests scoped to the company.
+- Application aggregate: Application (root) with ApplicationVersions.
+- Device aggregate: Device (root) with UserDeviceAssignments and DeviceAppInstallations.
+- AuditLog is a separate append-only aggregate.
+
 ## Bounded Contexts (Initial)
 
 At this stage, contexts are conceptual and may change:
