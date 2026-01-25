@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: alnilam
+  datasource:
+    url: jdbc:postgresql://localhost:5432/orion
+    username: orion
+    password: orion
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+security:
+  jwt:
+    issuer: orion-alnilam
+    secret: change-me-change-me-change-me-change-me
+    access-token-ttl-minutes: 15
+    refresh-token-ttl-days: 30
