@@ -13,7 +13,11 @@ import com.orion.alnilam.service.audit.AuditLogService;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -42,6 +46,7 @@ public class UserService {
     }
 
     public UserResponse create(UserCreateRequest request) {
+        enforceRoleConstraints(request.getRoles());
         if (userRepository.existsByUsernameIgnoreCase(request.getUsername())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
         }
@@ -66,6 +71,10 @@ public class UserService {
     public UserResponse update(Long id, UserUpdateRequest request) {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        if (request.getRoles() != null) {
+            enforceRoleConstraints(request.getRoles());
+        }
 
         if (!user.getUsername().equalsIgnoreCase(request.getUsername())
             && userRepository.existsByUsernameIgnoreCase(request.getUsername())) {
@@ -141,6 +150,43 @@ public class UserService {
             }
         }
         return roles;
+    }
+
+    private void enforceRoleConstraints(Set<Role> targetRoles) {
+        if (targetRoles == null || targetRoles.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Roles are required");
+        }
+
+        Set<Role> actorRoles = currentRoles();
+        if (actorRoles.contains(Role.SUPER_ADMIN)) {
+            if (!targetRoles.equals(Set.of(Role.COMPANY_ADMIN))) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "SUPER_ADMIN can only manage COMPANY_ADMIN users");
+            }
+            return;
+        }
+
+        if (actorRoles.contains(Role.COMPANY_ADMIN)) {
+            boolean allowed = targetRoles.stream().allMatch(role ->
+                role == Role.COMPANY_USER || role == Role.COMPANY_PILOT_USER
+            );
+            if (!allowed) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "COMPANY_ADMIN can only manage COMPANY_USER roles");
+            }
+            return;
+        }
+    }
+
+    private Set<Role> currentRoles() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return Set.of();
+        }
+        return authentication.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .filter(value -> value.startsWith("ROLE_"))
+            .map(value -> value.substring("ROLE_".length()))
+            .map(Role::valueOf)
+            .collect(Collectors.toSet());
     }
 
     private UserResponse toResponse(User user) {
