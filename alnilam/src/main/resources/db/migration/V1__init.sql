@@ -83,7 +83,7 @@ INSERT INTO app_user (
     NULL,
     'super.admin',
     'super.admin@example.com',
-    '$2b$12$SpuKPVybITySu/IiQ01Nauu4xUQnyfRUSR6eqg/qkT/vQ9Yj16.Ee',
+    '$2b$12$kuozTNn5SkM9GG/wR5GmWe.to30PtboS13nASo87KXh6cuWNLIfEi',
     TRUE,
     NOW(),
     NOW()
