@@ -9,8 +9,14 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.Instant;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "audit_log")
+@Getter
+@Setter
+@NoArgsConstructor
 public class AuditLog {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -40,61 +46,5 @@ public class AuditLog {
     @PrePersist
     void onCreate() {
         createdAt = Instant.now();
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getEntityType() {
-        return entityType;
-    }
-
-    public void setEntityType(String entityType) {
-        this.entityType = entityType;
-    }
-
-    public Long getEntityId() {
-        return entityId;
-    }
-
-    public void setEntityId(Long entityId) {
-        this.entityId = entityId;
-    }
-
-    public String getAction() {
-        return action;
-    }
-
-    public void setAction(String action) {
-        this.action = action;
-    }
-
-    public Long getActorUserId() {
-        return actorUserId;
-    }
-
-    public void setActorUserId(Long actorUserId) {
-        this.actorUserId = actorUserId;
-    }
-
-    public String getActorRole() {
-        return actorRole;
-    }
-
-    public void setActorRole(String actorRole) {
-        this.actorRole = actorRole;
-    }
-
-    public String getReason() {
-        return reason;
-    }
-
-    public void setReason(String reason) {
-        this.reason = reason;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
     }
 }

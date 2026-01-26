@@ -13,8 +13,14 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.Instant;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "refresh_token")
+@Getter
+@Setter
+@NoArgsConstructor
 public class RefreshToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,45 +45,5 @@ public class RefreshToken {
     @PrePersist
     void onCreate() {
         createdAt = Instant.now();
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public String getToken() {
-        return token;
-    }
-
-    public void setToken(String token) {
-        this.token = token;
-    }
-
-    public Instant getExpiresAt() {
-        return expiresAt;
-    }
-
-    public void setExpiresAt(Instant expiresAt) {
-        this.expiresAt = expiresAt;
-    }
-
-    public Instant getRevokedAt() {
-        return revokedAt;
-    }
-
-    public void setRevokedAt(Instant revokedAt) {
-        this.revokedAt = revokedAt;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
     }
 }

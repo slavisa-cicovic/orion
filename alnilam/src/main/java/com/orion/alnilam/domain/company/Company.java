@@ -10,8 +10,14 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.Instant;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "company")
+@Getter
+@Setter
+@NoArgsConstructor
 public class Company {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -54,81 +60,5 @@ public class Company {
     @PreUpdate
     void onUpdate() {
         updatedAt = Instant.now();
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getCode() {
-        return code;
-    }
-
-    public void setCode(String code) {
-        this.code = code;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getAddress() {
-        return address;
-    }
-
-    public void setAddress(String address) {
-        this.address = address;
-    }
-
-    public String getCity() {
-        return city;
-    }
-
-    public void setCity(String city) {
-        this.city = city;
-    }
-
-    public String getZip() {
-        return zip;
-    }
-
-    public void setZip(String zip) {
-        this.zip = zip;
-    }
-
-    public boolean isActive() {
-        return isActive;
-    }
-
-    public void setActive(boolean active) {
-        isActive = active;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public Long getCreatedById() {
-        return createdById;
-    }
-
-    public void setCreatedById(Long createdById) {
-        this.createdById = createdById;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public Long getUpdatedById() {
-        return updatedById;
-    }
-
-    public void setUpdatedById(Long updatedById) {
-        this.updatedById = updatedById;
     }
 }
