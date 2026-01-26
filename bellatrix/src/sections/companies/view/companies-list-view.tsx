@@ -13,6 +13,7 @@ import {
   Table,
   TableBody,
   TableContainer,
+  TextField,
   Tooltip
 } from "@mui/material";
 import {
@@ -33,7 +34,7 @@ import Iconify from "@/components/iconify";
 import MainLayout from "@/layouts/main/MainLayout";
 import { RouterLink } from "@/routes/components";
 import { paths } from "@/routes/paths";
-import { useGetCompanies } from "@/api/companies";
+import { CompanyApi, useGetCompanies } from "@/api/companies";
 import CompaniesTableRow from "@/sections/companies/companies-table-row";
 import {
   CompaniesTableToolbar,
@@ -60,9 +61,10 @@ const defaultFilters: ICompaniesTableFilters = {
 export default function CompaniesListView() {
   const [filters, setFilters] = useState(defaultFilters);
   const [confirmAction, setConfirmAction] = useState<"delete" | "activate" | "deactivate" | null>(null);
+  const [confirmReason, setConfirmReason] = useState("");
   const table = useTable({ defaultOrderBy: "name", defaultRowsPerPage: 25, defaultDense: false });
 
-  const { companyRows, companiesLoading, companiesError, companiesEmpty, total } = useGetCompanies({
+  const { companyRows, companiesLoading, companiesError, companiesEmpty, total, mutate } = useGetCompanies({
     search: filters.search,
     isActive: filters.isActive ? filters.isActive === "true" : undefined
   });
@@ -103,35 +105,65 @@ export default function CompaniesListView() {
 
   const openConfirm = useCallback((action: "delete" | "activate" | "deactivate") => {
     setConfirmAction(action);
+    setConfirmReason("");
   }, []);
 
   const closeConfirm = useCallback(() => {
     setConfirmAction(null);
+    setConfirmReason("");
   }, []);
 
-  const handleConfirmAction = useCallback(() => {
+  const handleConfirmAction = useCallback(async () => {
     if (!confirmAction) {
       return;
     }
-    console.info(`TODO: bulk ${confirmAction}`, table.selected);
-    table.setSelected([]);
+
+    const reason = confirmReason.trim();
+    if (!reason) {
+      return;
+    }
+
+    const selectedIds = table.selected;
+    try {
+      if (confirmAction === "delete") {
+        await CompanyApi.deleteCompanies(selectedIds, reason);
+      } else {
+        await CompanyApi.updateCompaniesStatus(selectedIds, confirmAction === "activate", reason);
+      }
+      await mutate();
+      table.setSelected([]);
+    } catch (error) {
+      console.error(error);
+    }
     setConfirmAction(null);
-  }, [confirmAction, table]);
+    setConfirmReason("");
+  }, [confirmAction, confirmReason, mutate, table]);
 
   const confirmTitle = confirmAction
     ? `Confirm ${confirmAction} companies`
     : "Confirm action";
-  const confirmContent = confirmAction === "delete"
+  const confirmContent = confirmAction
     ? (
       <>
-        {`You are about to delete ${table.selected.length} companies.`}
-        <br />
-        {"Users belonging to the selected companies will also be deleted."}
+        {confirmAction === "delete" ? (
+          <>
+            {`You are about to delete ${table.selected.length} companies.`}
+            <br />
+            {"Users belonging to the selected companies will also be deleted."}
+          </>
+        ) : (
+          `You are about to ${confirmAction} ${table.selected.length} companies.`
+        )}
+        <TextField
+          fullWidth
+          label="Reason"
+          value={confirmReason}
+          onChange={(event) => setConfirmReason(event.target.value)}
+          sx={{ mt: 2 }}
+        />
       </>
     )
-    : confirmAction
-      ? `You are about to ${confirmAction} ${table.selected.length} companies.`
-      : undefined;
+    : undefined;
 
   return (
     <MainLayout>

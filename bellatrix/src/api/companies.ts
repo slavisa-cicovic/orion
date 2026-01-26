@@ -41,4 +41,23 @@ export const CompanyApi = {
 
     return res.data;
   },
+  async deleteCompanies(companyIds: Array<number | string>, reason: string): Promise<void> {
+    const payload = {
+      companyIds: companyIds.map((id) => Number(id)).filter((id) => Number.isFinite(id)),
+      reason
+    };
+    await axiosInstance.delete(endpoints.companies.list, { data: payload });
+  },
+  async updateCompaniesStatus(
+    companyIds: Array<number | string>,
+    active: boolean,
+    reason: string
+  ): Promise<void> {
+    const payload = {
+      companyIds: companyIds.map((id) => Number(id)).filter((id) => Number.isFinite(id)),
+      active,
+      reason
+    };
+    await axiosInstance.post(`${endpoints.companies.list}/status`, payload);
+  }
 };
