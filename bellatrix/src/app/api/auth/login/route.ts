@@ -5,9 +5,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "NEXT_PUBLIC_HOST_API is not set" }, { status: 500 });
   }
 
+  const baseUrl = process.env.NEXT_PUBLIC_HOST_API.replace(/\/$/, "");
+  const apiBase = baseUrl.endsWith("/api") ? baseUrl : `${baseUrl}/api`;
   const body = await request.json();
 
-  const res = await fetch(`${process.env.NEXT_PUBLIC_HOST_API}/auth/login`, {
+  const res = await fetch(`${apiBase}/auth/login`, {
     method: "POST",
     headers: {
       "content-type": "application/json"

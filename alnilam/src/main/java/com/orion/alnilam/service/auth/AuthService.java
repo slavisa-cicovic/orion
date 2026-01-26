@@ -10,6 +10,7 @@ import com.orion.alnilam.domain.user.User;
 import com.orion.alnilam.repository.RefreshTokenRepository;
 import com.orion.alnilam.repository.UserRepository;
 import java.time.Instant;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -58,8 +59,9 @@ public class AuthService {
         return new LoginResponse(accessToken, refreshPayload.token());
     }
 
+    @Transactional
     public RefreshResponse refresh(RefreshRequest request) {
-        RefreshToken current = refreshTokenRepository.findByToken(request.getRefreshToken())
+        RefreshToken current = refreshTokenRepository.findByTokenWithUser(request.getRefreshToken())
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token"));
 
         if (current.getRevokedAt() != null) {

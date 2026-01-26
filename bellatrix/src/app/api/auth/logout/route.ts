@@ -6,12 +6,14 @@ export async function POST() {
     return NextResponse.json({ error: "NEXT_PUBLIC_HOST_API is not set" }, { status: 500 });
   }
 
+  const baseUrl = process.env.NEXT_PUBLIC_HOST_API.replace(/\/$/, "");
+  const apiBase = baseUrl.endsWith("/api") ? baseUrl : `${baseUrl}/api`;
   const refreshToken = cookies().get("refreshToken")?.value;
   if (!refreshToken) {
     return NextResponse.json({ error: "Missing refresh token" }, { status: 400 });
   }
 
-  const res = await fetch(`${process.env.NEXT_PUBLIC_HOST_API}/auth/logout`, {
+  const res = await fetch(`${apiBase}/auth/logout`, {
     method: "POST",
     headers: {
       "content-type": "application/json"
