@@ -9,6 +9,9 @@ type UsersQuery = {
   companyId?: string;
   isActive?: boolean;
   search?: string;
+  page?: number;
+  pageSize?: number;
+  sort?: string;
 };
 
 export function useGetUsers(params?: UsersQuery) {
@@ -16,6 +19,9 @@ export function useGetUsers(params?: UsersQuery) {
   if (params?.companyId) query.set("companyId", params.companyId);
   if (params?.isActive !== undefined) query.set("isActive", String(params.isActive));
   if (params?.search) query.set("search", params.search);
+  if (params?.page !== undefined) query.set("page", String(params.page));
+  if (params?.pageSize !== undefined) query.set("pageSize", String(params.pageSize));
+  if (params?.sort) query.set("sort", params.sort);
 
   const url = params ? `${endpoints.users.list}?${query.toString()}` : endpoints.users.list;
 
@@ -23,13 +29,15 @@ export function useGetUsers(params?: UsersQuery) {
 
   return useMemo(
     () => ({
-      users: data ?? [],
-      userRows: mapUsersToRows(data ?? []),
-      total: data?.length ?? 0,
+      users: data?.items ?? [],
+      userRows: mapUsersToRows(data?.items ?? []),
+      total: data?.total ?? 0,
+      page: data?.page ?? 0,
+      pageSize: data?.pageSize ?? 0,
       usersLoading: isLoading,
       usersError: error,
       usersValidating: isValidating,
-      usersEmpty: !isLoading && !data?.length,
+      usersEmpty: !isLoading && !data?.items?.length,
       mutate
     }),
     [data, error, isLoading, isValidating, mutate]

@@ -18,7 +18,6 @@ import {
 } from "@mui/material";
 import {
   emptyRows,
-  getComparator,
   TableEmptyRows,
   TableHeadCustom,
   TableNoData,
@@ -62,24 +61,23 @@ export default function UsersListView() {
   const { user } = useAuth();
   const currentUserId = user?.userId ?? null;
 
+  const sortFieldMap: Record<string, string> = {
+    email: "email",
+    fullName: "fullName",
+    companyName: "companyName",
+    isActive: "active"
+  };
+  const sortParam = `${sortFieldMap[table.orderBy] ?? "email"},${table.order}`;
+
   const { userRows, usersLoading, usersError, usersEmpty, total, mutate } = useGetUsers({
     search: filters.search,
-    isActive: filters.isActive ? filters.isActive === "true" : undefined
+    isActive: filters.isActive ? filters.isActive === "true" : undefined,
+    page: table.page,
+    pageSize: table.rowsPerPage,
+    sort: sortParam
   });
 
-  const dataFiltered = useMemo(
-    () => userRows.slice().sort(getComparator(table.order, table.orderBy)),
-    [userRows, table.order, table.orderBy]
-  );
-
-  const dataInPage = useMemo(
-    () =>
-      dataFiltered.slice(
-        table.page * table.rowsPerPage,
-        table.page * table.rowsPerPage + table.rowsPerPage
-      ),
-    [dataFiltered, table.page, table.rowsPerPage]
-  );
+  const dataInPage = useMemo(() => userRows, [userRows]);
 
   const rowHeight = 72;
   const canReset = !isEqual(defaultFilters, filters);
@@ -98,10 +96,10 @@ export default function UsersListView() {
 
   const selectableIds = useMemo(
     () =>
-      dataFiltered
+      dataInPage
         .filter((row) => row.id !== currentUserId && row.email !== SUPER_ADMIN_EMAIL)
         .map((row) => row.id),
-    [dataFiltered, currentUserId]
+    [dataInPage, currentUserId]
   );
 
   const openConfirm = useCallback((action: "delete" | "activate" | "deactivate") => {
@@ -216,7 +214,7 @@ export default function UsersListView() {
             {!usersLoading && usersEmpty && !usersError && (
               <Alert severity="info">No users found.</Alert>
             )}
-            {!usersLoading && !usersError && dataFiltered.length > 0 && (
+            {!usersLoading && !usersError && dataInPage.length > 0 && (
               <TableContainer sx={{ position: "relative", overflow: "unset" }}>
                 <TableSelectedAction
                   dense={table.dense}
@@ -292,7 +290,7 @@ export default function UsersListView() {
 
                     <TableEmptyRows
                       height={rowHeight}
-                      emptyRows={emptyRows(table.page, table.rowsPerPage, dataFiltered.length)}
+                      emptyRows={emptyRows(table.page, table.rowsPerPage, dataInPage.length)}
                     />
 
                     <TableNoData notFound={usersEmpty} />
@@ -302,7 +300,7 @@ export default function UsersListView() {
             )}
             <Box sx={{ position: "relative" }}>
               <TablePaginationCustom
-                count={dataFiltered.length}
+                count={total}
                 page={table.page}
                 rowsPerPage={table.rowsPerPage}
                 onPageChange={table.onChangePage}

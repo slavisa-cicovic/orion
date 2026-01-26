@@ -7,12 +7,14 @@ import com.orion.alnilam.dto.request.UserCreateRequest;
 import com.orion.alnilam.dto.request.UserDeleteRequest;
 import com.orion.alnilam.dto.request.UserStatusRequest;
 import com.orion.alnilam.dto.request.UserUpdateRequest;
+import com.orion.alnilam.dto.response.PagedResponse;
 import com.orion.alnilam.dto.response.UserDeviceResponse;
 import com.orion.alnilam.dto.response.UserResponse;
 import com.orion.alnilam.repository.UserRepository;
 import com.orion.alnilam.service.audit.AuditLogService;
 import java.util.HashMap;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,16 +49,30 @@ public class UserService {
         this.auditLogService = auditLogService;
     }
 
-    public List<UserResponse> list() {
+    public PagedResponse<UserResponse> list(int page, int pageSize, String sort) {
+        int safePage = Math.max(page, 0);
+        int safePageSize = Math.max(pageSize, 1);
+
         List<User> users = userRepository.findAll();
         Map<Long, String> companyNames = resolveCompanyNames(users);
-        return users.stream()
+
+        List<UserResponse> responses = users.stream()
             .map(user -> {
                 Long companyId = user.getCompanyId();
                 String companyName = companyId == null ? null : companyNames.get(companyId);
                 return toResponse(user, companyName);
             })
+            .sorted(buildUserComparator(sort))
             .toList();
+
+        long total = responses.size();
+        int fromIndex = safePage * safePageSize;
+        if (fromIndex >= total) {
+            return new PagedResponse<>(List.of(), safePage, safePageSize, total);
+        }
+        int toIndex = Math.min(fromIndex + safePageSize, responses.size());
+        List<UserResponse> items = responses.subList(fromIndex, toIndex);
+        return new PagedResponse<>(items, safePage, safePageSize, total);
     }
 
     public UserResponse create(UserCreateRequest request) {
@@ -254,5 +270,42 @@ public class UserService {
             user.getRoles(),
             user.isActive()
         );
+    }
+
+    private Comparator<UserResponse> buildUserComparator(String sort) {
+        String[] parts = sort == null ? new String[0] : sort.split(",", 2);
+        String field = parts.length > 0 ? parts[0].trim() : "email";
+        String direction = parts.length > 1 ? parts[1].trim().toLowerCase() : "asc";
+
+        Comparator<String> textComparator = Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER);
+        Comparator<UserResponse> comparator;
+
+        switch (field) {
+            case "fullName":
+                comparator = Comparator.comparing(this::fullNameForSort, textComparator);
+                break;
+            case "companyName":
+                comparator = Comparator.comparing(UserResponse::getCompanyName, textComparator);
+                break;
+            case "active":
+                comparator = Comparator.comparing(UserResponse::isActive);
+                break;
+            case "email":
+            default:
+                comparator = Comparator.comparing(UserResponse::getEmail, textComparator);
+                break;
+        }
+
+        if ("desc".equals(direction)) {
+            comparator = comparator.reversed();
+        }
+        return comparator;
+    }
+
+    private String fullNameForSort(UserResponse user) {
+        String firstName = user.getFirstName() == null ? "" : user.getFirstName();
+        String lastName = user.getLastName() == null ? "" : user.getLastName();
+        String fullName = (firstName + " " + lastName).trim();
+        return fullName.isEmpty() ? null : fullName;
     }
 }

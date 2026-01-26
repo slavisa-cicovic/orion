@@ -4,6 +4,7 @@ import com.orion.alnilam.dto.request.UserCreateRequest;
 import com.orion.alnilam.dto.request.UserDeleteRequest;
 import com.orion.alnilam.dto.request.UserStatusRequest;
 import com.orion.alnilam.dto.request.UserUpdateRequest;
+import com.orion.alnilam.dto.response.PagedResponse;
 import com.orion.alnilam.dto.response.UserDeviceResponse;
 import com.orion.alnilam.dto.response.UserResponse;
 import com.orion.alnilam.service.user.UserService;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -31,8 +33,12 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<List<UserResponse>> list() {
-        return ResponseEntity.ok(userService.list());
+    public ResponseEntity<PagedResponse<UserResponse>> list(
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "25") int pageSize,
+        @RequestParam(defaultValue = "email,asc") String sort
+    ) {
+        return ResponseEntity.ok(userService.list(page, pageSize, sort));
     }
 
     @PostMapping

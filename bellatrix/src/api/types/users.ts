@@ -12,7 +12,12 @@ export type User = {
   fullName?: string | null;
 };
 
-export type UserListResponse = User[];
+export type UserListResponse = {
+  items: User[];
+  page: number;
+  pageSize: number;
+  total: number;
+};
 
 export type CreateUserRequest = {
   username: string;
