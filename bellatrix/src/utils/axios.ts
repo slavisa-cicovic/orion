@@ -38,8 +38,8 @@ export const fetcher = async (args: string | [string, AxiosRequestConfig]) => {
 
 export const endpoints = {
   apps: {
-    list: '/admin/apps',
-    details: (id: string) => `/admin/apps/${id}`,
+    list: '/admin/applications',
+    details: (id: string) => `/admin/applications/${id}`,
   },
   appVersions: {
     list: (appId: string) => `/admin/apps/${appId}/versions`,
