@@ -1,17 +1,18 @@
 export type App = {
-  id: string;
+  id: number;
   packageName: string;
   displayName: string;
   description: string | null;
   iconUrl: string | null;
-  ownerCompanyId: string | null;
-  isActive: boolean;
-  createdAt: string;
+  ownerCompanyId: number | null;
+  active: boolean;
 };
 
 export type AppListResponse = {
   items: App[];
-  totalCount?: number;
+  page: number;
+  pageSize: number;
+  total: number;
 };
 
 export type CreateAppRequest = {
@@ -19,5 +20,6 @@ export type CreateAppRequest = {
   packageName: string;
   description: string | null;
   iconUrl: string | null;
-  ownerCompanyId: string | null;
+  ownerCompanyId: number | null;
+  active: boolean;
 };

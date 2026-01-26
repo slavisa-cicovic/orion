@@ -3,7 +3,6 @@ export type AppRow = {
   displayName: string;
   packageName: string;
   isActive: boolean;
-  createdAt: string;
 };
 
 export type AppData = {
@@ -12,4 +11,5 @@ export type AppData = {
   description: string;
   iconUrl: string;
   ownerCompanyId: string;
+  active: boolean;
 };

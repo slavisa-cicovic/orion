@@ -1,14 +1,12 @@
 import { App, CreateAppRequest } from "@/api/types/apps";
 import { AppData, AppRow } from "@/sections/apps/types";
-import { formatDate } from "@/api/mappings/formatters";
 
 export function mapAppToRow(app: App): AppRow {
   return {
-    id: app.id,
+    id: String(app.id),
     displayName: app.displayName,
     packageName: app.packageName,
-    isActive: app.isActive,
-    createdAt: formatDate(app.createdAt)
+    isActive: app.active
   };
 }
 
@@ -26,6 +24,7 @@ export function mapAppDataToCreateAppRequest(appData: AppData): CreateAppRequest
     packageName: appData.packageName.trim(),
     description: description.length > 0 ? description : null,
     iconUrl: iconUrl.length > 0 ? iconUrl : null,
-    ownerCompanyId: ownerCompanyId.length > 0 ? ownerCompanyId : null
+    ownerCompanyId: ownerCompanyId.length > 0 ? Number(ownerCompanyId) : null,
+    active: appData.active
   };
 }

@@ -20,7 +20,6 @@ export default function AppsTableRow({ row, selected, onSelectRow }: AppsTableRo
       <TableCell>{row.displayName}</TableCell>
       <TableCell>{row.packageName}</TableCell>
       <TableCell>{row.isActive ? "Yes" : "No"}</TableCell>
-      <TableCell>{row.createdAt}</TableCell>
     </TableRow>
   );
 }

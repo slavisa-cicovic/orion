@@ -6,6 +6,7 @@ import * as Yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import axios from "axios";
 import FormProvider, { RHFTextField } from "@/components/hook-form";
+import RHFSwitch from "@/components/hook-form/rhf-switch";
 import RHFAutocomplete from "@/components/hook-form/rhf-autocomplete";
 import { Alert, Button, Card, CardActions, CardContent, CardHeader } from "@mui/material";
 import Grid from "@mui/material/Grid";
@@ -43,7 +44,8 @@ export function AppEditForm({ currentApp }: Props) {
     packageName: Yup.string().trim().required("Package name is required"),
     description: Yup.string().trim().defined(),
     iconUrl: Yup.string().trim().defined(),
-    ownerCompanyId: Yup.string().trim().defined()
+    ownerCompanyId: Yup.string().trim().defined(),
+    active: Yup.boolean().required()
   });
 
   const defaultValues = useMemo<AppData>(
@@ -52,7 +54,8 @@ export function AppEditForm({ currentApp }: Props) {
       packageName: currentApp?.packageName ?? "",
       description: currentApp?.description ?? "",
       iconUrl: currentApp?.iconUrl ?? "",
-      ownerCompanyId: currentApp?.ownerCompanyId ?? ""
+      ownerCompanyId: currentApp?.ownerCompanyId != null ? String(currentApp.ownerCompanyId) : "",
+      active: currentApp?.active ?? true
     }),
     [currentApp]
   );
@@ -126,6 +129,9 @@ export function AppEditForm({ currentApp }: Props) {
                     isOptionEqualToValue={(option, value) => option === value}
                     freeSolo
                   />
+                </Grid>
+                <Grid item xs={12}>
+                  <RHFSwitch name="active" label="Active" />
                 </Grid>
               </Grid>
             </CardContent>

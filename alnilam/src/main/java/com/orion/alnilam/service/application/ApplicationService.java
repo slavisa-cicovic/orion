@@ -7,12 +7,15 @@ import com.orion.alnilam.dto.request.ApplicationDeleteRequest;
 import com.orion.alnilam.dto.request.ApplicationStatusRequest;
 import com.orion.alnilam.dto.request.ApplicationUpdateRequest;
 import com.orion.alnilam.dto.response.ApplicationResponse;
+import com.orion.alnilam.dto.response.PagedResponse;
 import com.orion.alnilam.repository.ApplicationRepository;
 import com.orion.alnilam.repository.ApplicationVersionRepository;
 import com.orion.alnilam.service.audit.AuditLogService;
+import java.util.Comparator;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -31,8 +34,31 @@ public class ApplicationService {
         this.auditLogService = auditLogService;
     }
 
-    public List<ApplicationResponse> list() {
-        return applicationRepository.findAll().stream().map(this::toResponse).toList();
+    public PagedResponse<ApplicationResponse> list(
+        int page,
+        int pageSize,
+        String sort,
+        String search,
+        Boolean isActive
+    ) {
+        int safePage = Math.max(page, 0);
+        int safePageSize = Math.max(pageSize, 1);
+
+        List<ApplicationResponse> responses = applicationRepository.findAll().stream()
+            .map(this::toResponse)
+            .filter(app -> isActive == null || app.isActive() == isActive)
+            .filter(app -> matchesSearch(app, search))
+            .sorted(buildApplicationComparator(sort))
+            .toList();
+
+        long total = responses.size();
+        int fromIndex = safePage * safePageSize;
+        if (fromIndex >= total) {
+            return new PagedResponse<>(List.of(), safePage, safePageSize, total);
+        }
+        int toIndex = Math.min(fromIndex + safePageSize, responses.size());
+        List<ApplicationResponse> items = responses.subList(fromIndex, toIndex);
+        return new PagedResponse<>(items, safePage, safePageSize, total);
     }
 
     public ApplicationResponse create(ApplicationCreateRequest request) {
@@ -118,5 +144,48 @@ public class ApplicationService {
             app.getIconUrl(),
             app.isActive()
         );
+    }
+
+    private Comparator<ApplicationResponse> buildApplicationComparator(String sort) {
+        String[] parts = sort == null ? new String[0] : sort.split(",", 2);
+        String field = parts.length > 0 ? parts[0].trim() : "displayName";
+        String direction = parts.length > 1 ? parts[1].trim().toLowerCase() : "asc";
+
+        Comparator<String> textComparator = Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER);
+        Comparator<ApplicationResponse> comparator;
+
+        switch (field) {
+            case "packageName":
+                comparator = Comparator.comparing(ApplicationResponse::getPackageName, textComparator);
+                break;
+            case "active":
+                comparator = Comparator.comparing(ApplicationResponse::isActive);
+                break;
+            case "displayName":
+            default:
+                comparator = Comparator.comparing(ApplicationResponse::getDisplayName, textComparator);
+                break;
+        }
+
+        if ("desc".equals(direction)) {
+            comparator = comparator.reversed();
+        }
+        return comparator;
+    }
+
+    private boolean matchesSearch(ApplicationResponse app, String search) {
+        if (!StringUtils.hasText(search)) {
+            return true;
+        }
+        String needle = search.trim().toLowerCase();
+        return containsIgnoreCase(app.getDisplayName(), needle)
+            || containsIgnoreCase(app.getPackageName(), needle);
+    }
+
+    private boolean containsIgnoreCase(String value, String needle) {
+        if (value == null) {
+            return false;
+        }
+        return value.toLowerCase().contains(needle);
     }
 }

@@ -17,7 +17,6 @@ import {
 } from "@mui/material";
 import {
   emptyRows,
-  getComparator,
   TableEmptyRows,
   TableHeadCustom,
   TableNoData,
@@ -41,8 +40,7 @@ import { ConfirmDialog } from "@/components/custom-dialog";
 const TABLE_HEAD = [
   { id: "displayName", label: "Display name", minWidth: 180 },
   { id: "packageName", label: "Package name", minWidth: 220 },
-  { id: "isActive", label: "Active", width: 80 },
-  { id: "createdAt", label: "Created at", minWidth: 140 }
+  { id: "isActive", label: "Active", width: 80 }
 ];
 
 const defaultFilters: IAppsTableFilters = {
@@ -58,23 +56,21 @@ export default function AppsListView() {
 
   const table = useTable({ defaultOrderBy: "displayName", defaultRowsPerPage: 25, defaultDense: true });
 
+  const sortFieldMap: Record<string, string> = {
+    displayName: "displayName",
+    packageName: "packageName",
+    isActive: "active"
+  };
+  const sortParam = `${sortFieldMap[table.orderBy] ?? "displayName"},${table.order}`;
+
   const { appRows, appsLoading, appsEmpty, appsError, total } = useGetApps({
-    search: filters.search
+    search: filters.search,
+    page: table.page,
+    pageSize: table.rowsPerPage,
+    sort: sortParam
   });
 
-  const dataFiltered = useMemo(
-    () => appRows.slice().sort(getComparator(table.order, table.orderBy)),
-    [appRows, table.order, table.orderBy]
-  );
-
-  const dataInPage = useMemo(
-    () =>
-      dataFiltered.slice(
-        table.page * table.rowsPerPage,
-        table.page * table.rowsPerPage + table.rowsPerPage
-      ),
-    [dataFiltered, table.page, table.rowsPerPage]
-  );
+  const dataInPage = useMemo(() => appRows, [appRows]);
 
   const rowHeight = 72;
 
@@ -170,7 +166,7 @@ export default function AppsListView() {
             {!appsLoading && appsEmpty && !appsError && (
               <Alert severity="info">No applications found.</Alert>
             )}
-            {!appsLoading && !appsError && appRows && appRows.length > 0 && (
+            {!appsLoading && !appsError && dataInPage.length > 0 && (
               <TableContainer sx={{ position: "relative", overflow: "unset" }}>
                 <TableSelectedAction
                   dense={table.dense}
@@ -221,12 +217,12 @@ export default function AppsListView() {
                     orderBy={table.orderBy}
                     headLabel={TABLE_HEAD}
                     onSort={table.onSort}
-                    rowCount={dataFiltered.length}
+                  rowCount={dataInPage.length}
                     numSelected={table.selected.length}
                     onSelectAllRows={(checked) =>
                       table.onSelectAllRows(
                         checked,
-                        dataFiltered.map((row) => row.id)
+                        dataInPage.map((row) => row.id)
                       )
                     }
                   />
@@ -245,7 +241,7 @@ export default function AppsListView() {
 
                     <TableEmptyRows
                       height={rowHeight}
-                      emptyRows={emptyRows(table.page, table.rowsPerPage, dataFiltered.length)}
+                      emptyRows={emptyRows(table.page, table.rowsPerPage, dataInPage.length)}
                     />
 
                     <TableNoData notFound={appsEmpty} />
@@ -255,7 +251,7 @@ export default function AppsListView() {
             )}
             <Box sx={{ position: "relative" }}>
               <TablePaginationCustom
-                count={dataFiltered.length}
+                count={total}
                 page={table.page}
                 rowsPerPage={table.rowsPerPage}
                 onPageChange={table.onChangePage}

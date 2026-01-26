@@ -10,6 +10,9 @@ type AppsQuery = {
   isActive?: boolean;
   ownerCompanyId?: string;
   platform?: 'ANDROID' | 'IOS';
+  page?: number;
+  pageSize?: number;
+  sort?: string;
 };
 
 export function useGetApps(params?: AppsQuery) {
@@ -18,6 +21,9 @@ export function useGetApps(params?: AppsQuery) {
   if (params?.isActive !== undefined) query.set('isActive', String(params.isActive));
   if (params?.ownerCompanyId) query.set('ownerCompanyId', params.ownerCompanyId);
   if (params?.platform) query.set('platform', params.platform);
+  if (params?.page !== undefined) query.set('page', String(params.page));
+  if (params?.pageSize !== undefined) query.set('pageSize', String(params.pageSize));
+  if (params?.sort) query.set('sort', params.sort);
 
   const URL = params ? `${endpoints.apps.list}?${query.toString()}` : endpoints.apps.list;
 
@@ -27,14 +33,14 @@ export function useGetApps(params?: AppsQuery) {
     () => ({
       apps: data?.items ?? [],
       appRows: mapAppsToRows(data?.items ?? []),
-      total: data?.totalCount ?? data?.items?.length ?? 0,
+      total: data?.total ?? 0,
       appsLoading: isLoading,
       appsError: error,
       appsValidating: isValidating,
       appsEmpty: !isLoading && !data?.items?.length,
       mutate,
     }),
-    [data?.items, data?.totalCount, error, isLoading, isValidating, mutate]
+    [data?.items, data?.total, error, isLoading, isValidating, mutate]
   );
 }
 
