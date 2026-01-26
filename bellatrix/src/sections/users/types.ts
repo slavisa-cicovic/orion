@@ -4,12 +4,15 @@ export type UserRow = {
   fullName: string;
   companyName: string;
   isActive: boolean;
-  createdAt: string;
 };
 
 export type UserData = {
+  username: string;
   email: string;
-  fullName: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
   companyId: string;
   password: string;
+  active: boolean;
 };

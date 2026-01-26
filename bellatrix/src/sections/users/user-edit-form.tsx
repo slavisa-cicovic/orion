@@ -6,6 +6,7 @@ import * as Yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import axios from "axios";
 import FormProvider, { RHFTextField } from "@/components/hook-form";
+import RHFSwitch from "@/components/hook-form/rhf-switch";
 import RHFAutocomplete from "@/components/hook-form/rhf-autocomplete";
 import { Alert, Button, Card, CardActions, CardContent, CardHeader } from "@mui/material";
 import Grid from "@mui/material/Grid";
@@ -39,18 +40,26 @@ export function UserEditForm({ currentUser }: Props) {
   };
 
   const UserSchema: Yup.ObjectSchema<UserData> = Yup.object({
+    username: Yup.string().trim().required("Username is required"),
     email: Yup.string().trim().email("Invalid email").required("Email is required"),
-    fullName: Yup.string().trim().defined(),
+    firstName: Yup.string().trim().defined(),
+    lastName: Yup.string().trim().defined(),
+    phone: Yup.string().trim().defined(),
     companyId: Yup.string().trim().required("Company ID is required"),
-    password: Yup.string().required("Password is required")
+    password: Yup.string().required("Password is required"),
+    active: Yup.boolean().required()
   });
 
   const defaultValues = useMemo<UserData>(
     () => ({
+      username: currentUser?.username ?? "",
       email: currentUser?.email ?? "",
-      fullName: currentUser?.fullName ?? "",
-      companyId: currentUser?.companyId ?? "",
-      password: ""
+      firstName: currentUser?.firstName ?? "",
+      lastName: currentUser?.lastName ?? "",
+      phone: currentUser?.phone ?? "",
+      companyId: currentUser?.companyId != null ? String(currentUser.companyId) : "",
+      password: "",
+      active: currentUser?.active ?? true
     }),
     [currentUser]
   );
@@ -103,10 +112,19 @@ export function UserEditForm({ currentUser }: Props) {
                   </Grid>
                 )}
                 <Grid item xs={12}>
+                  <RHFTextField name="username" label="Username" />
+                </Grid>
+                <Grid item xs={12}>
                   <RHFTextField name="email" label="Email" />
                 </Grid>
                 <Grid item xs={12}>
-                  <RHFTextField name="fullName" label="Full name" />
+                  <RHFTextField name="firstName" label="First name" />
+                </Grid>
+                <Grid item xs={12}>
+                  <RHFTextField name="lastName" label="Last name" />
+                </Grid>
+                <Grid item xs={12}>
+                  <RHFTextField name="phone" label="Phone" />
                 </Grid>
                 <Grid item xs={12}>
                   <RHFAutocomplete
@@ -121,6 +139,9 @@ export function UserEditForm({ currentUser }: Props) {
                 </Grid>
                 <Grid item xs={12}>
                   <RHFTextField name="password" type="password" label="Password" />
+                </Grid>
+                <Grid item xs={12}>
+                  <RHFSwitch name="active" label="Active" />
                 </Grid>
               </Grid>
             </CardContent>

@@ -51,12 +51,16 @@ public class UserService {
         List<User> users = userRepository.findAll();
         Map<Long, String> companyNames = resolveCompanyNames(users);
         return users.stream()
-            .map(user -> toResponse(user, companyNames.get(user.getCompanyId())))
+            .map(user -> {
+                Long companyId = user.getCompanyId();
+                String companyName = companyId == null ? null : companyNames.get(companyId);
+                return toResponse(user, companyName);
+            })
             .toList();
     }
 
     public UserResponse create(UserCreateRequest request) {
-        enforceRoleConstraints(request.getRoles());
+        Set<Role> targetRoles = rolesForActor();
         if (userRepository.existsByUsernameIgnoreCase(request.getUsername())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
         }
@@ -72,7 +76,7 @@ public class UserService {
         user.setLastName(request.getLastName());
         user.setPhone(request.getPhone());
         user.setCompanyId(request.getCompanyId());
-        user.setRoles(normalizeRoles(request.getRoles()));
+        user.setRoles(targetRoles);
         user.setActive(request.isActive());
         User saved = userRepository.save(user);
         return toResponse(saved, resolveCompanyName(saved.getCompanyId()));
@@ -81,10 +85,7 @@ public class UserService {
     public UserResponse update(Long id, UserUpdateRequest request) {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-
-        if (request.getRoles() != null) {
-            enforceRoleConstraints(request.getRoles());
-        }
+        enforceActorCanManage(user);
 
         if (!user.getUsername().equalsIgnoreCase(request.getUsername())
             && userRepository.existsByUsernameIgnoreCase(request.getUsername())) {
@@ -101,9 +102,6 @@ public class UserService {
         user.setLastName(request.getLastName());
         user.setPhone(request.getPhone());
         user.setCompanyId(request.getCompanyId());
-        if (request.getRoles() != null) {
-            user.setRoles(normalizeRoles(request.getRoles()));
-        }
         user.setActive(request.isActive());
         if (StringUtils.hasText(request.getPassword())) {
             user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
@@ -163,26 +161,24 @@ public class UserService {
         return Collections.emptyList();
     }
 
-    private Set<Role> normalizeRoles(Set<Role> roles) {
-        if (roles == null) {
-            return Set.of();
+    private Set<Role> rolesForActor() {
+        Set<Role> actorRoles = currentRoles();
+
+        if (actorRoles.contains(Role.SUPER_ADMIN)) {
+            return Set.of(Role.COMPANY_ADMIN);
         }
-        if (roles.contains(Role.COMPANY_PILOT_USER)) {
-            roles = Set.copyOf(roles);
-            if (!roles.contains(Role.COMPANY_USER)) {
-                roles = new java.util.HashSet<>(roles);
-                roles.add(Role.COMPANY_USER);
-            }
+
+        if (actorRoles.contains(Role.COMPANY_ADMIN)) {
+            return Set.of(Role.COMPANY_USER);
         }
-        return roles;
+
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed to manage users");
     }
 
-    private void enforceRoleConstraints(Set<Role> targetRoles) {
-        if (targetRoles == null || targetRoles.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Roles are required");
-        }
-
+    private void enforceActorCanManage(User user) {
         Set<Role> actorRoles = currentRoles();
+        Set<Role> targetRoles = user.getRoles();
+
         if (actorRoles.contains(Role.SUPER_ADMIN)) {
             if (!targetRoles.equals(Set.of(Role.COMPANY_ADMIN))) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "SUPER_ADMIN can only manage COMPANY_ADMIN users");
@@ -199,6 +195,8 @@ public class UserService {
             }
             return;
         }
+
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed to manage users");
     }
 
     private Set<Role> currentRoles() {

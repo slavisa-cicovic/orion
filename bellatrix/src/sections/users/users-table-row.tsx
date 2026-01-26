@@ -38,7 +38,6 @@ export default function UsersTableRow({
       <TableCell>{row.fullName}</TableCell>
       <TableCell>{row.companyName}</TableCell>
       <TableCell>{row.isActive ? "Yes" : "No"}</TableCell>
-      <TableCell>{row.createdAt}</TableCell>
     </TableRow>
   );
 }

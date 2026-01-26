@@ -43,8 +43,7 @@ const TABLE_HEAD = [
   { id: "email", label: "Email", minWidth: 200 },
   { id: "fullName", label: "Full name", minWidth: 180 },
   { id: "companyName", label: "Company", minWidth: 160 },
-  { id: "isActive", label: "Active", width: 80 },
-  { id: "createdAt", label: "Created at", minWidth: 140 }
+  { id: "isActive", label: "Active", width: 80 }
 ];
 
 const SUPER_ADMIN_EMAIL = "super.admin@example.com";

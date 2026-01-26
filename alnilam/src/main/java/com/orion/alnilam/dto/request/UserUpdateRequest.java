@@ -1,9 +1,7 @@
 package com.orion.alnilam.dto.request;
 
-import com.orion.alnilam.domain.enums.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import java.util.Set;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -24,8 +22,6 @@ public class UserUpdateRequest {
     private String phone;
 
     private Long companyId;
-
-    private Set<Role> roles;
 
     private boolean active;
 
