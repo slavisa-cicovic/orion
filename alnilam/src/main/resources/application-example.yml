@@ -18,3 +18,22 @@ security:
     secret: change-me-change-me-change-me-change-me
     access-token-ttl-minutes: 15
     refresh-token-ttl-days: 30
+
+app:
+  cors:
+    allowed-origins:
+      - "https://example-web.orion.com"
+      - "https://example-mobile.orion.com"
+      - "http://localhost:3000"
+      - "http://localhost:8081"
+    allowed-methods:
+      - "GET"
+      - "POST"
+      - "PUT"
+      - "DELETE"
+      - "OPTIONS"
+    allowed-headers:
+      - "*"
+    exposed-headers: []
+    allow-credentials: true
+    max-age: 3600
