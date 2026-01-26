@@ -317,7 +317,13 @@ export default function CompaniesListView() {
         title={confirmTitle}
         content={confirmContent}
         action={
-          <Button variant="contained" color="primary" onClick={handleConfirmAction} sx={{ minWidth: "100px" }}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleConfirmAction}
+            sx={{ minWidth: "100px" }}
+            disabled={!confirmReason.trim()}
+          >
             Confirm
           </Button>
         }
