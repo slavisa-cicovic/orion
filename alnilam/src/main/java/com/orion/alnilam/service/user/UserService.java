@@ -25,6 +25,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class UserService {
+    private static final String SUPER_ADMIN_EMAIL = "super.admin@example.com";
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
@@ -109,6 +110,12 @@ public class UserService {
         if (users.size() != request.getUserIds().size()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "One or more users not found");
         }
+        if (users.stream().anyMatch(this::isProtectedUser)) {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "super.admin@example.com cannot be deleted"
+            );
+        }
         userRepository.deleteAll(users);
         for (User user : users) {
             auditLogService.log("USER", user.getId(), "DELETE", request.getReason());
@@ -119,6 +126,12 @@ public class UserService {
         List<User> users = userRepository.findAllById(request.getUserIds());
         if (users.size() != request.getUserIds().size()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "One or more users not found");
+        }
+        if (!request.isActive() && users.stream().anyMatch(this::isProtectedUser)) {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "super.admin@example.com cannot be deactivated"
+            );
         }
         for (User user : users) {
             user.setActive(request.isActive());
@@ -187,6 +200,10 @@ public class UserService {
             .map(value -> value.substring("ROLE_".length()))
             .map(Role::valueOf)
             .collect(Collectors.toSet());
+    }
+
+    private boolean isProtectedUser(User user) {
+        return user.getEmail() != null && user.getEmail().equalsIgnoreCase(SUPER_ADMIN_EMAIL);
     }
 
     private UserResponse toResponse(User user) {
