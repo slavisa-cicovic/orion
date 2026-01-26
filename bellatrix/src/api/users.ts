@@ -42,5 +42,24 @@ export const UserApi = {
     const res = await axiosInstance.post(endpoints.users.list, payload);
 
     return res.data;
+  },
+  async deleteUsers(userIds: Array<number | string>, reason: string): Promise<void> {
+    const payload = {
+      userIds: userIds.map((id) => Number(id)).filter((id) => Number.isFinite(id)),
+      reason
+    };
+    await axiosInstance.delete(endpoints.users.list, { data: payload });
+  },
+  async updateUsersStatus(
+    userIds: Array<number | string>,
+    active: boolean,
+    reason: string
+  ): Promise<void> {
+    const payload = {
+      userIds: userIds.map((id) => Number(id)).filter((id) => Number.isFinite(id)),
+      active,
+      reason
+    };
+    await axiosInstance.post(`${endpoints.users.list}/status`, payload);
   }
 };
