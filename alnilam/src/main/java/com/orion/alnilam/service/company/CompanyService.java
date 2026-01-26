@@ -6,11 +6,14 @@ import com.orion.alnilam.dto.request.CompanyDeleteRequest;
 import com.orion.alnilam.dto.request.CompanyStatusRequest;
 import com.orion.alnilam.dto.request.CompanyUpdateRequest;
 import com.orion.alnilam.dto.response.CompanyResponse;
+import com.orion.alnilam.dto.response.PagedResponse;
 import com.orion.alnilam.repository.CompanyRepository;
 import com.orion.alnilam.service.audit.AuditLogService;
+import java.util.Comparator;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -23,10 +26,31 @@ public class CompanyService {
         this.auditLogService = auditLogService;
     }
 
-    public List<CompanyResponse> list() {
-        return companyRepository.findAll().stream()
+    public PagedResponse<CompanyResponse> list(
+        int page,
+        int pageSize,
+        String sort,
+        String search,
+        Boolean isActive
+    ) {
+        int safePage = Math.max(page, 0);
+        int safePageSize = Math.max(pageSize, 1);
+
+        List<CompanyResponse> responses = companyRepository.findAll().stream()
             .map(this::toResponse)
+            .filter(company -> isActive == null || company.isActive() == isActive)
+            .filter(company -> matchesSearch(company, search))
+            .sorted(buildCompanyComparator(sort))
             .toList();
+
+        long total = responses.size();
+        int fromIndex = safePage * safePageSize;
+        if (fromIndex >= total) {
+            return new PagedResponse<>(List.of(), safePage, safePageSize, total);
+        }
+        int toIndex = Math.min(fromIndex + safePageSize, responses.size());
+        List<CompanyResponse> items = responses.subList(fromIndex, toIndex);
+        return new PagedResponse<>(items, safePage, safePageSize, total);
     }
 
     public CompanyResponse create(CompanyCreateRequest request) {
@@ -103,5 +127,57 @@ public class CompanyService {
             company.getZip(),
             company.isActive()
         );
+    }
+
+    private Comparator<CompanyResponse> buildCompanyComparator(String sort) {
+        String[] parts = sort == null ? new String[0] : sort.split(",", 2);
+        String field = parts.length > 0 ? parts[0].trim() : "name";
+        String direction = parts.length > 1 ? parts[1].trim().toLowerCase() : "asc";
+
+        Comparator<String> textComparator = Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER);
+        Comparator<CompanyResponse> comparator;
+
+        switch (field) {
+            case "code":
+                comparator = Comparator.comparing(CompanyResponse::getCode, textComparator);
+                break;
+            case "city":
+                comparator = Comparator.comparing(CompanyResponse::getCity, textComparator);
+                break;
+            case "zip":
+                comparator = Comparator.comparing(CompanyResponse::getZip, textComparator);
+                break;
+            case "active":
+                comparator = Comparator.comparing(CompanyResponse::isActive);
+                break;
+            case "name":
+            default:
+                comparator = Comparator.comparing(CompanyResponse::getName, textComparator);
+                break;
+        }
+
+        if ("desc".equals(direction)) {
+            comparator = comparator.reversed();
+        }
+        return comparator;
+    }
+
+    private boolean matchesSearch(CompanyResponse company, String search) {
+        if (!StringUtils.hasText(search)) {
+            return true;
+        }
+        String needle = search.trim().toLowerCase();
+        return containsIgnoreCase(company.getCode(), needle)
+            || containsIgnoreCase(company.getName(), needle)
+            || containsIgnoreCase(company.getAddress(), needle)
+            || containsIgnoreCase(company.getCity(), needle)
+            || containsIgnoreCase(company.getZip(), needle);
+    }
+
+    private boolean containsIgnoreCase(String value, String needle) {
+        if (value == null) {
+            return false;
+        }
+        return value.toLowerCase().contains(needle);
     }
 }

@@ -8,7 +8,12 @@ export type Company = {
   active: boolean;
 };
 
-export type CompanyListResponse = Company[];
+export type CompanyListResponse = {
+  items: Company[];
+  page: number;
+  pageSize: number;
+  total: number;
+};
 
 export type CreateCompanyRequest = {
   code: string;

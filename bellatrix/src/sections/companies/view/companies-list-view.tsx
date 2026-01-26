@@ -18,7 +18,6 @@ import {
 } from "@mui/material";
 import {
   emptyRows,
-  getComparator,
   TableEmptyRows,
   TableHeadCustom,
   TableNoData,
@@ -64,29 +63,29 @@ export default function CompaniesListView() {
   const [confirmReason, setConfirmReason] = useState("");
   const table = useTable({ defaultOrderBy: "name", defaultRowsPerPage: 25, defaultDense: false });
 
+  const sortFieldMap: Record<string, string> = {
+    code: "code",
+    name: "name",
+    city: "city",
+    zip: "zip",
+    active: "active"
+  };
+  const sortParam = `${sortFieldMap[table.orderBy] ?? "name"},${table.order}`;
+
   const { companyRows, companiesLoading, companiesError, companiesEmpty, total, mutate } = useGetCompanies({
     search: filters.search,
-    isActive: filters.isActive ? filters.isActive === "true" : undefined
+    isActive: filters.isActive ? filters.isActive === "true" : undefined,
+    page: table.page,
+    pageSize: table.rowsPerPage,
+    sort: sortParam
   });
 
-  const dataFiltered = useMemo(
-    () => companyRows.slice().sort(getComparator(table.order, table.orderBy)),
-    [companyRows, table.order, table.orderBy]
-  );
-
   const selectableIds = useMemo(
-    () => dataFiltered.filter((row) => row.id !== SYSTEM_COMPANY_ID).map((row) => row.id),
-    [dataFiltered]
+    () => companyRows.filter((row) => row.id !== SYSTEM_COMPANY_ID).map((row) => row.id),
+    [companyRows]
   );
 
-  const dataInPage = useMemo(
-    () =>
-      dataFiltered.slice(
-        table.page * table.rowsPerPage,
-        table.page * table.rowsPerPage + table.rowsPerPage
-      ),
-    [dataFiltered, table.page, table.rowsPerPage]
-  );
+  const dataInPage = useMemo(() => companyRows, [companyRows]);
 
   const rowHeight = 72;
   const canReset = !isEqual(defaultFilters, filters);
@@ -215,7 +214,7 @@ export default function CompaniesListView() {
             {!companiesLoading && companiesEmpty && !companiesError && (
               <Alert severity="info">No companies found.</Alert>
             )}
-            {!companiesLoading && !companiesError && dataFiltered.length > 0 && (
+            {!companiesLoading && !companiesError && dataInPage.length > 0 && (
               <TableContainer sx={{ position: "relative", overflow: "unset" }}>
                 <TableSelectedAction
                   dense={table.dense}
@@ -291,7 +290,7 @@ export default function CompaniesListView() {
 
                     <TableEmptyRows
                       height={rowHeight}
-                      emptyRows={emptyRows(table.page, table.rowsPerPage, dataFiltered.length)}
+                      emptyRows={emptyRows(table.page, table.rowsPerPage, dataInPage.length)}
                     />
 
                     <TableNoData notFound={companiesEmpty} />
@@ -301,7 +300,7 @@ export default function CompaniesListView() {
             )}
             <Box sx={{ position: "relative" }}>
               <TablePaginationCustom
-                count={dataFiltered.length}
+                count={total}
                 page={table.page}
                 rowsPerPage={table.rowsPerPage}
                 onPageChange={table.onChangePage}
