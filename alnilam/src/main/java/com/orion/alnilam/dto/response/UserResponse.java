@@ -8,6 +8,7 @@ import lombok.Getter;
 public class UserResponse {
     private final Long id;
     private final Long companyId;
+    private final String companyName;
     private final String username;
     private final String email;
     private final String firstName;
@@ -19,6 +20,7 @@ public class UserResponse {
     public UserResponse(
         Long id,
         Long companyId,
+        String companyName,
         String username,
         String email,
         String firstName,
@@ -29,6 +31,7 @@ public class UserResponse {
     ) {
         this.id = id;
         this.companyId = companyId;
+        this.companyName = companyName;
         this.username = username;
         this.email = email;
         this.firstName = firstName;

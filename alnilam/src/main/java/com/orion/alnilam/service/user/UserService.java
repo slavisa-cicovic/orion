@@ -1,5 +1,6 @@
 package com.orion.alnilam.service.user;
 
+import com.orion.alnilam.domain.company.Company;
 import com.orion.alnilam.domain.enums.Role;
 import com.orion.alnilam.domain.user.User;
 import com.orion.alnilam.dto.request.UserCreateRequest;
@@ -10,10 +11,13 @@ import com.orion.alnilam.dto.response.UserDeviceResponse;
 import com.orion.alnilam.dto.response.UserResponse;
 import com.orion.alnilam.repository.UserRepository;
 import com.orion.alnilam.service.audit.AuditLogService;
+import java.util.HashMap;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import com.orion.alnilam.repository.CompanyRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -26,23 +30,28 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class UserService {
     private static final String SUPER_ADMIN_EMAIL = "super.admin@example.com";
+    private final CompanyRepository companyRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
 
     public UserService(
+        CompanyRepository companyRepository,
         UserRepository userRepository,
         PasswordEncoder passwordEncoder,
         AuditLogService auditLogService
     ) {
+        this.companyRepository = companyRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditLogService = auditLogService;
     }
 
     public List<UserResponse> list() {
-        return userRepository.findAll().stream()
-            .map(this::toResponse)
+        List<User> users = userRepository.findAll();
+        Map<Long, String> companyNames = resolveCompanyNames(users);
+        return users.stream()
+            .map(user -> toResponse(user, companyNames.get(user.getCompanyId())))
             .toList();
     }
 
@@ -66,7 +75,7 @@ public class UserService {
         user.setRoles(normalizeRoles(request.getRoles()));
         user.setActive(request.isActive());
         User saved = userRepository.save(user);
-        return toResponse(saved);
+        return toResponse(saved, resolveCompanyName(saved.getCompanyId()));
     }
 
     public UserResponse update(Long id, UserUpdateRequest request) {
@@ -102,7 +111,7 @@ public class UserService {
 
         User saved = userRepository.save(user);
         auditLogService.log("USER", saved.getId(), "UPDATE", request.getReason());
-        return toResponse(saved);
+        return toResponse(saved, resolveCompanyName(saved.getCompanyId()));
     }
 
     public void deleteBulk(UserDeleteRequest request) {
@@ -141,7 +150,10 @@ public class UserService {
         for (User user : saved) {
             auditLogService.log("USER", user.getId(), action, request.getReason());
         }
-        return saved.stream().map(this::toResponse).toList();
+        Map<Long, String> companyNames = resolveCompanyNames(saved);
+        return saved.stream()
+            .map(user -> toResponse(user, companyNames.get(user.getCompanyId())))
+            .toList();
     }
 
     public List<UserDeviceResponse> listDevices(Long userId) {
@@ -206,10 +218,36 @@ public class UserService {
         return user.getEmail() != null && user.getEmail().equalsIgnoreCase(SUPER_ADMIN_EMAIL);
     }
 
-    private UserResponse toResponse(User user) {
+    private Map<Long, String> resolveCompanyNames(List<User> users) {
+        List<Long> companyIds = users.stream()
+            .map(User::getCompanyId)
+            .filter(id -> id != null)
+            .distinct()
+            .toList();
+        if (companyIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, String> companyNames = new HashMap<>();
+        for (Company company : companyRepository.findAllById(companyIds)) {
+            companyNames.put(company.getId(), company.getName());
+        }
+        return companyNames;
+    }
+
+    private String resolveCompanyName(Long companyId) {
+        if (companyId == null) {
+            return null;
+        }
+        return companyRepository.findById(companyId)
+            .map(Company::getName)
+            .orElse(null);
+    }
+
+    private UserResponse toResponse(User user, String companyName) {
         return new UserResponse(
             user.getId(),
             user.getCompanyId(),
+            companyName,
             user.getUsername(),
             user.getEmail(),
             user.getFirstName(),
