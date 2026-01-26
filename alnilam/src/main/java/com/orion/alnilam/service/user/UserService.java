@@ -49,7 +49,13 @@ public class UserService {
         this.auditLogService = auditLogService;
     }
 
-    public PagedResponse<UserResponse> list(int page, int pageSize, String sort) {
+    public PagedResponse<UserResponse> list(
+        int page,
+        int pageSize,
+        String sort,
+        String search,
+        Boolean isActive
+    ) {
         int safePage = Math.max(page, 0);
         int safePageSize = Math.max(pageSize, 1);
 
@@ -62,6 +68,8 @@ public class UserService {
                 String companyName = companyId == null ? null : companyNames.get(companyId);
                 return toResponse(user, companyName);
             })
+            .filter(user -> isActive == null || user.isActive() == isActive)
+            .filter(user -> matchesSearch(user, search))
             .sorted(buildUserComparator(sort))
             .toList();
 
@@ -307,5 +315,23 @@ public class UserService {
         String lastName = user.getLastName() == null ? "" : user.getLastName();
         String fullName = (firstName + " " + lastName).trim();
         return fullName.isEmpty() ? null : fullName;
+    }
+
+    private boolean matchesSearch(UserResponse user, String search) {
+        if (!StringUtils.hasText(search)) {
+            return true;
+        }
+        String needle = search.trim().toLowerCase();
+        return containsIgnoreCase(user.getEmail(), needle)
+            || containsIgnoreCase(user.getFirstName(), needle)
+            || containsIgnoreCase(user.getLastName(), needle)
+            || containsIgnoreCase(user.getCompanyName(), needle);
+    }
+
+    private boolean containsIgnoreCase(String value, String needle) {
+        if (value == null) {
+            return false;
+        }
+        return value.toLowerCase().contains(needle);
     }
 }

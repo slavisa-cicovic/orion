@@ -36,9 +36,11 @@ public class UserController {
     public ResponseEntity<PagedResponse<UserResponse>> list(
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "25") int pageSize,
-        @RequestParam(defaultValue = "email,asc") String sort
+        @RequestParam(defaultValue = "email,asc") String sort,
+        @RequestParam(required = false) String search,
+        @RequestParam(required = false) Boolean isActive
     ) {
-        return ResponseEntity.ok(userService.list(page, pageSize, sort));
+        return ResponseEntity.ok(userService.list(page, pageSize, sort, search, isActive));
     }
 
     @PostMapping
