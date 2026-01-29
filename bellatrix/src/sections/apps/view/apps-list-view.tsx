@@ -171,11 +171,11 @@ export default function AppsListView() {
                 <TableSelectedAction
                   dense={table.dense}
                   numSelected={table.selected.length}
-                  rowCount={dataFiltered.length}
+                  rowCount={dataInPage.length}
                   onSelectAllRows={(checked) =>
                     table.onSelectAllRows(
                       checked,
-                      dataFiltered.map((row) => row.id)
+                      dataInPage.map((row) => row.id)
                     )
                   }
                   actions={[

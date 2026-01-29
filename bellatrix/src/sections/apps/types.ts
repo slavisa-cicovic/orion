@@ -10,6 +10,5 @@ export type AppData = {
   packageName: string;
   description: string;
   iconUrl: string;
-  ownerCompanyId: string;
   active: boolean;
 };

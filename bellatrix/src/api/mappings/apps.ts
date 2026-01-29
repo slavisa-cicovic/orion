@@ -17,14 +17,12 @@ export function mapAppsToRows(apps: App[]): AppRow[] {
 export function mapAppDataToCreateAppRequest(appData: AppData): CreateAppRequest {
   const description = appData.description.trim();
   const iconUrl = appData.iconUrl.trim();
-  const ownerCompanyId = appData.ownerCompanyId.trim();
 
   return {
     displayName: appData.displayName.trim(),
     packageName: appData.packageName.trim(),
     description: description.length > 0 ? description : null,
     iconUrl: iconUrl.length > 0 ? iconUrl : null,
-    ownerCompanyId: ownerCompanyId.length > 0 ? Number(ownerCompanyId) : null,
     active: appData.active
   };
 }

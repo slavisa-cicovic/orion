@@ -11,6 +11,10 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
+  servlet:
+    multipart:
+      max-file-size: 300MB
+      max-request-size: 300MB
 
 security:
   jwt:
@@ -37,3 +41,5 @@ app:
     exposed-headers: []
     allow-credentials: true
     max-age: 3600
+  upload:
+    dir: /path/to/upload-dir

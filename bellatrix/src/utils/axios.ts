@@ -62,5 +62,8 @@ export const endpoints = {
   installations: {
     list: '/user/installations',
   },
+  uploads: {
+    list: '/admin/uploads',
+  },
   // TODO for other domains
 };

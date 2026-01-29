@@ -4,7 +4,6 @@ export type App = {
   displayName: string;
   description: string | null;
   iconUrl: string | null;
-  ownerCompanyId: number | null;
   active: boolean;
 };
 
@@ -20,6 +19,5 @@ export type CreateAppRequest = {
   packageName: string;
   description: string | null;
   iconUrl: string | null;
-  ownerCompanyId: number | null;
   active: boolean;
 };

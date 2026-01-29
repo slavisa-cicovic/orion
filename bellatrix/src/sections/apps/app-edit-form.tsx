@@ -7,13 +7,12 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import axios from "axios";
 import FormProvider, { RHFTextField } from "@/components/hook-form";
 import RHFSwitch from "@/components/hook-form/rhf-switch";
-import RHFAutocomplete from "@/components/hook-form/rhf-autocomplete";
 import { Alert, Button, Card, CardActions, CardContent, CardHeader } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { AppApi } from "@/api/apps";
+import { UploadApi } from "@/api/uploads";
 import { App } from "@/api/types/apps";
 import { AppData } from "@/sections/apps/types";
-import { useGetCompanies } from "@/api/companies";
 import { useSnackbar } from "notistack";
 import { paths } from "@/routes/paths";
 import { useRouter } from "src/routes/hooks";
@@ -25,26 +24,18 @@ type Props = {
 export function AppEditForm({ currentApp }: Props) {
   const { enqueueSnackbar } = useSnackbar();
   const router = useRouter();
-  const { companies } = useGetCompanies();
 
   const [errorMsg, setErrorMsg] = useState("");
+  const [iconFile, setIconFile] = useState<File | null>(null);
 
-  const companyOptions = useMemo(() => companies.map((company) => company.id), [companies]);
-  const companyLabelById = useMemo(
-    () => new Map(companies.map((company) => [company.id, company.name])),
-    [companies]
-  );
-  const getCompanyLabel = (companyId: string) => {
-    if (!companyId) return "";
-    return companyLabelById.get(companyId) ?? companyId;
-  };
+  const ICON_MAX_SIZE = 300 * 1024;
+  const ICON_TYPES = ["image/png", "image/jpeg"];
 
   const AppSchema: Yup.ObjectSchema<AppData> = Yup.object({
     displayName: Yup.string().trim().required("Display name is required"),
     packageName: Yup.string().trim().required("Package name is required"),
     description: Yup.string().trim().defined(),
     iconUrl: Yup.string().trim().defined(),
-    ownerCompanyId: Yup.string().trim().defined(),
     active: Yup.boolean().required()
   });
 
@@ -54,7 +45,6 @@ export function AppEditForm({ currentApp }: Props) {
       packageName: currentApp?.packageName ?? "",
       description: currentApp?.description ?? "",
       iconUrl: currentApp?.iconUrl ?? "",
-      ownerCompanyId: currentApp?.ownerCompanyId != null ? String(currentApp.ownerCompanyId) : "",
       active: currentApp?.active ?? true
     }),
     [currentApp]
@@ -72,10 +62,37 @@ export function AppEditForm({ currentApp }: Props) {
     formState: { isSubmitting }
   } = methods;
 
+  const handleIconChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    if (!file) {
+      setIconFile(null);
+      return;
+    }
+
+    if (!ICON_TYPES.includes(file.type)) {
+      setErrorMsg("Icon must be a PNG or JPG image.");
+      return;
+    }
+
+    if (file.size > ICON_MAX_SIZE) {
+      setErrorMsg("Icon must be smaller than 300KB.");
+      return;
+    }
+
+    setErrorMsg("");
+    setIconFile(file);
+  };
+
   const onSubmit = async (data: AppData) => {
     try {
       setErrorMsg("");
-      await AppApi.createApp(data);
+      let iconUrl = data.iconUrl;
+      if (iconFile) {
+        const upload = await UploadApi.uploadFile("ICON", iconFile);
+        iconUrl = upload.path;
+      }
+      const payload = { ...data, iconUrl };
+      await AppApi.createApp(payload);
       reset(defaultValues);
       enqueueSnackbar(currentApp?.id ? "update success" : "create_success");
       router.push(paths.dashboard.apps.root);
@@ -117,17 +134,10 @@ export function AppEditForm({ currentApp }: Props) {
                   <RHFTextField name="description" label="Description" multiline rows={3} />
                 </Grid>
                 <Grid item xs={12}>
-                  <RHFTextField name="iconUrl" label="Icon URL" />
-                </Grid>
-                <Grid item xs={12}>
-                  <RHFAutocomplete
-                    name="ownerCompanyId"
-                    label="Owner company"
-                    placeholder="Select company"
-                    options={companyOptions}
-                    getOptionLabel={getCompanyLabel}
-                    isOptionEqualToValue={(option, value) => option === value}
-                    freeSolo
+                  <input
+                    accept="image/png,image/jpeg"
+                    type="file"
+                    onChange={handleIconChange}
                   />
                 </Grid>
                 <Grid item xs={12}>
