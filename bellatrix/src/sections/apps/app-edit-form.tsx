@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as Yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -67,6 +67,11 @@ export function AppEditForm({ currentApp }: Props) {
     reset,
     formState: { isSubmitting }
   } = methods;
+
+  useEffect(() => {
+    reset(defaultValues);
+    setIconFile(null);
+  }, [defaultValues, reset]);
 
   const handleIconChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
