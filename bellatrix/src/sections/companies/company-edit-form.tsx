@@ -10,6 +10,7 @@ import RHFSwitch from "@/components/hook-form/rhf-switch";
 import { Alert, Button, Card, CardActions, CardContent, CardHeader } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { CompanyApi } from "@/api/companies";
+import { UploadApi } from "@/api/uploads";
 import { Company } from "@/api/types/companies";
 import { CompanyData } from "@/sections/companies/types";
 import { useSnackbar } from "notistack";
@@ -27,6 +28,10 @@ export function CompanyEditForm({ currentCompany }: Props) {
   const router = useRouter();
 
   const [errorMsg, setErrorMsg] = useState('');
+  const [iconFile, setIconFile] = useState<File | null>(null);
+
+  const ICON_MAX_SIZE = 300 * 1024;
+  const ICON_TYPES = ["image/png", "image/jpeg"];
 
   const CompanySchema: Yup.ObjectSchema<CompanyData> = Yup.object({
     code: Yup.string().trim().required("Code is required"),
@@ -34,6 +39,7 @@ export function CompanyEditForm({ currentCompany }: Props) {
     address: Yup.string().trim().defined(),
     city: Yup.string().trim().defined(),
     zip: Yup.string().trim().defined(),
+    iconUrl: Yup.string().trim().defined(),
     active: Yup.boolean().required()
   });
 
@@ -44,6 +50,7 @@ export function CompanyEditForm({ currentCompany }: Props) {
       address: currentCompany?.address ?? "",
       city: currentCompany?.city ?? "",
       zip: currentCompany?.zip ?? "",
+      iconUrl: currentCompany?.iconUrl ?? "",
       active: currentCompany?.active ?? true
     }),
     [currentCompany]
@@ -61,10 +68,37 @@ export function CompanyEditForm({ currentCompany }: Props) {
     formState: { isSubmitting }
   } = methods;
 
+  const handleIconChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    if (!file) {
+      setIconFile(null);
+      return;
+    }
+
+    if (!ICON_TYPES.includes(file.type)) {
+      setErrorMsg("Icon must be a PNG or JPG image.");
+      return;
+    }
+
+    if (file.size > ICON_MAX_SIZE) {
+      setErrorMsg("Icon must be smaller than 300KB.");
+      return;
+    }
+
+    setErrorMsg('');
+    setIconFile(file);
+  };
+
   const onSubmit = async (data: CompanyData) => {
     try {
       setErrorMsg('');
-      await CompanyApi.createCompany(data);
+      let iconUrl = data.iconUrl;
+      if (iconFile) {
+        const upload = await UploadApi.uploadFile("COMPANY_ICON", iconFile);
+        iconUrl = upload.path;
+      }
+      const payload = { ...data, iconUrl };
+      await CompanyApi.createCompany(payload);
       reset(defaultValues);
       enqueueSnackbar(currentCompany?.id ? 'update success' : 'create_success');
       router.push(paths.dashboard.companies.root);
@@ -110,6 +144,13 @@ export function CompanyEditForm({ currentCompany }: Props) {
                 </Grid>
                 <Grid item xs={12}>
                   <RHFTextField name="zip" label="Zip" />
+                </Grid>
+                <Grid item xs={12}>
+                  <input
+                    accept="image/png,image/jpeg"
+                    type="file"
+                    onChange={handleIconChange}
+                  />
                 </Grid>
                 <Grid item xs={12}>
                   <RHFSwitch name="active" label="Active" />

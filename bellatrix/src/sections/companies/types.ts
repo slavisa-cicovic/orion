@@ -1,5 +1,6 @@
 export type CompanyRow = {
   id: string;
+  iconUrl: string | null;
   code: string;
   name: string;
   city: string;
@@ -13,5 +14,6 @@ export type CompanyData = {
   address: string;
   city: string;
   zip: string;
+  iconUrl: string;
   active: boolean;
 };

@@ -18,4 +18,5 @@ public class CompanyCreateRequest {
     private String address;
     private String city;
     private String zip;
+    private String iconUrl;
 }

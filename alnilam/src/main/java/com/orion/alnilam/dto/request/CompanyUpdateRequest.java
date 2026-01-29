@@ -21,4 +21,5 @@ public class CompanyUpdateRequest {
     private String address;
     private String city;
     private String zip;
+    private String iconUrl;
 }

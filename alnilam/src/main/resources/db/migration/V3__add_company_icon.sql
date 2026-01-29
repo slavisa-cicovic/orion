@@ -1,0 +1,2 @@
+ALTER TABLE company
+ADD COLUMN icon_url VARCHAR(255);

@@ -9,6 +9,12 @@ public enum UploadType {
         Set.of("png", "jpg", "jpeg"),
         Set.of("image/png", "image/jpeg")
     ),
+    COMPANY_ICON(
+        "company-icons",
+        300 * 1024L,
+        Set.of("png", "jpg", "jpeg"),
+        Set.of("image/png", "image/jpeg")
+    ),
     APK(
         "apk",
         300L * 1024 * 1024,

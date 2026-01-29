@@ -1,6 +1,6 @@
 import axiosInstance, { endpoints } from "@/utils/axios";
 
-export type UploadType = "ICON" | "APK" | "IPA";
+export type UploadType = "ICON" | "COMPANY_ICON" | "APK" | "IPA";
 
 export type UploadResponse = {
   path: string;

@@ -43,6 +43,7 @@ import {
 import { CompaniesTableFiltersResult } from "@/sections/companies/companies-table-filters-result";
 
 const TABLE_HEAD = [
+  { id: "icon", label: "", width: 64 },
   { id: "code", label: "Code", minWidth: 120 },
   { id: "name", label: "Name", minWidth: 180 },
   { id: "city", label: "City", minWidth: 140 },

@@ -35,6 +35,9 @@ public class Company {
 
     private String zip;
 
+    @Column(name = "icon_url")
+    private String iconUrl;
+
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
 

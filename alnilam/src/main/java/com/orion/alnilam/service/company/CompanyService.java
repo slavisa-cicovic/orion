@@ -65,6 +65,7 @@ public class CompanyService {
         company.setAddress(request.getAddress());
         company.setCity(request.getCity());
         company.setZip(request.getZip());
+        company.setIconUrl(request.getIconUrl());
         Company saved = companyRepository.save(company);
         return toResponse(saved);
     }
@@ -85,6 +86,7 @@ public class CompanyService {
         company.setAddress(request.getAddress());
         company.setCity(request.getCity());
         company.setZip(request.getZip());
+        company.setIconUrl(request.getIconUrl());
         Company saved = companyRepository.save(company);
         auditLogService.log("COMPANY", saved.getId(), "UPDATE", request.getReason());
         return toResponse(saved);
@@ -125,6 +127,7 @@ public class CompanyService {
             company.getAddress(),
             company.getCity(),
             company.getZip(),
+            company.getIconUrl(),
             company.isActive()
         );
     }

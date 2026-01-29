@@ -5,6 +5,7 @@ export type Company = {
   address: string | null;
   city: string | null;
   zip: string | null;
+  iconUrl: string | null;
   active: boolean;
 };
 
@@ -22,4 +23,5 @@ export type CreateCompanyRequest = {
   address: string | null;
   city: string | null;
   zip: string | null;
+  iconUrl: string | null;
 };

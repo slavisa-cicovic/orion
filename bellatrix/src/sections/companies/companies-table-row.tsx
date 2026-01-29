@@ -4,6 +4,7 @@ import Checkbox from "@mui/material/Checkbox";
 import TableCell from "@mui/material/TableCell";
 import TableRow from "@mui/material/TableRow";
 import Tooltip from "@mui/material/Tooltip";
+import Avatar from "@mui/material/Avatar";
 import { CompanyRow } from "@/sections/companies/types";
 
 type CompaniesTableRowProps = {
@@ -34,6 +35,16 @@ export default function CompaniesTableRow({
         checkbox
       )}
     </TableCell>
+      <TableCell>
+        <Avatar
+          src={row.iconUrl ?? undefined}
+          alt={row.name}
+          sx={{ width: 32, height: 32 }}
+          variant="rounded"
+        >
+          {row.name?.[0] ?? "C"}
+        </Avatar>
+      </TableCell>
       <TableCell>{row.code}</TableCell>
       <TableCell>{row.name}</TableCell>
       <TableCell>{row.city}</TableCell>
