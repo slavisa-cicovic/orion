@@ -14,3 +14,7 @@ export type AppData = {
   active: boolean;
   reason?: string;
 };
+
+export type AppFormValues = AppData & {
+  iconFile: File | string | null;
+};

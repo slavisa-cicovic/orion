@@ -5,14 +5,22 @@ import { useForm } from "react-hook-form";
 import * as Yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import axios from "axios";
-import FormProvider, { RHFTextField } from "@/components/hook-form";
+import FormProvider, { RHFTextField, RHFUploadAvatar } from "@/components/hook-form";
 import RHFSwitch from "@/components/hook-form/rhf-switch";
-import { Alert, Button, Card, CardActions, CardContent, CardHeader } from "@mui/material";
+import {
+  Alert,
+  Button,
+  Card,
+  CardActions,
+  CardContent,
+  CardHeader,
+  Typography,
+} from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { AppApi } from "@/api/apps";
 import { UploadApi } from "@/api/uploads";
 import { App } from "@/api/types/apps";
-import { AppData } from "@/sections/apps/types";
+import { AppData, AppFormValues } from "@/sections/apps/types";
 import { useSnackbar } from "notistack";
 import { paths } from "@/routes/paths";
 import { useRouter } from "src/routes/hooks";
@@ -26,37 +34,44 @@ export function AppEditForm({ currentApp }: Props) {
   const router = useRouter();
 
   const [errorMsg, setErrorMsg] = useState("");
-  const [iconFile, setIconFile] = useState<File | null>(null);
 
   const ICON_MAX_SIZE = 300 * 1024;
-  const ICON_TYPES = ["image/png", "image/jpeg"];
 
-  const AppSchema: Yup.ObjectSchema<AppData> = Yup.object({
+  const AppSchema = Yup.object({
     displayName: Yup.string().trim().required("Display name is required"),
     packageName: Yup.string().trim().required("Package name is required"),
     description: Yup.string().trim().defined(),
     iconUrl: Yup.string().trim().defined(),
+    iconFile: Yup.mixed().nullable().defined(),
     active: Yup.boolean().required(),
     reason: Yup.string().trim().when([], {
       is: () => Boolean(currentApp?.id),
       then: (schema) => schema.required("Reason is required"),
       otherwise: (schema) => schema.optional()
     })
-  });
+  }) as Yup.ObjectSchema<AppFormValues>;
 
-  const defaultValues = useMemo<AppData>(
+  const iconPreviewUrl = useMemo(() => {
+    if (!currentApp?.iconUrl) return null;
+    const baseUrl = (process.env.NEXT_PUBLIC_HOST_API ?? "").replace(/\/$/, "");
+    const apiBase = baseUrl.endsWith("/api") ? baseUrl : `${baseUrl}/api`;
+    return `${apiBase}/uploads/${currentApp.iconUrl.replace(/^\/+/, "")}`;
+  }, [currentApp?.iconUrl]);
+
+  const defaultValues = useMemo<AppFormValues>(
     () => ({
       displayName: currentApp?.displayName ?? "",
       packageName: currentApp?.packageName ?? "",
       description: currentApp?.description ?? "",
       iconUrl: currentApp?.iconUrl ?? "",
+      iconFile: iconPreviewUrl ?? null,
       active: currentApp?.active ?? true,
       reason: ""
     }),
-    [currentApp]
+    [currentApp, iconPreviewUrl]
   );
 
-  const methods = useForm<AppData>({
+  const methods = useForm<AppFormValues>({
     resolver: yupResolver(AppSchema),
     defaultValues,
     mode: "onChange"
@@ -65,44 +80,30 @@ export function AppEditForm({ currentApp }: Props) {
   const {
     handleSubmit,
     reset,
+    setValue,
     formState: { isSubmitting }
   } = methods;
 
   useEffect(() => {
     reset(defaultValues);
-    setIconFile(null);
   }, [defaultValues, reset]);
 
-  const handleIconChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] ?? null;
-    if (!file) {
-      setIconFile(null);
-      return;
-    }
-
-    if (!ICON_TYPES.includes(file.type)) {
-      setErrorMsg("Icon must be a PNG or JPG image.");
-      return;
-    }
-
-    if (file.size > ICON_MAX_SIZE) {
-      setErrorMsg("Icon must be smaller than 300KB.");
-      return;
-    }
-
-    setErrorMsg("");
-    setIconFile(file);
-  };
-
-  const onSubmit = async (data: AppData) => {
+  const onSubmit = async (data: AppFormValues) => {
     try {
       setErrorMsg("");
       let iconUrl = data.iconUrl;
-      if (iconFile) {
-        const upload = await UploadApi.uploadFile("ICON", iconFile);
+      if (data.iconFile && typeof data.iconFile !== "string") {
+        const upload = await UploadApi.uploadFile("ICON", data.iconFile);
         iconUrl = upload.path;
       }
-      const payload = { ...data, iconUrl };
+      const payload: AppData = {
+        displayName: data.displayName,
+        packageName: data.packageName,
+        description: data.description,
+        active: data.active,
+        iconUrl,
+        reason: data.reason
+      };
       if (currentApp?.id) {
         await AppApi.updateApp(String(currentApp.id), payload);
       } else {
@@ -149,10 +150,23 @@ export function AppEditForm({ currentApp }: Props) {
                   <RHFTextField name="description" label="Description" multiline rows={3} />
                 </Grid>
                 <Grid item xs={12}>
-                  <input
-                    accept="image/png,image/jpeg"
-                    type="file"
-                    onChange={handleIconChange}
+                  <RHFUploadAvatar
+                    name="iconFile"
+                    maxSize={ICON_MAX_SIZE}
+                    accept={{ "image/png": [], "image/jpeg": [] }}
+                    onDrop={(acceptedFiles) => {
+                      const file = acceptedFiles[0];
+                      if (!file) return;
+                      const fileWithPreview = Object.assign(file, {
+                        preview: URL.createObjectURL(file)
+                      });
+                      setValue("iconFile", fileWithPreview, { shouldValidate: true });
+                    }}
+                    helperText={
+                      <Typography variant="caption" sx={{ display: "block", textAlign: "center", mt: 1 }}>
+                        PNG/JPG up to 300KB
+                      </Typography>
+                    }
                   />
                 </Grid>
                 <Grid item xs={12}>
