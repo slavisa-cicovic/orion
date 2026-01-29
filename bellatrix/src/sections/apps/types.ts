@@ -1,5 +1,6 @@
 export type AppRow = {
   id: string;
+  iconUrl: string | null;
   displayName: string;
   packageName: string;
   isActive: boolean;

@@ -38,6 +38,7 @@ import { RouterLink } from "@/routes/components";
 import { ConfirmDialog } from "@/components/custom-dialog";
 
 const TABLE_HEAD = [
+  { id: "icon", label: "", width: 64 },
   { id: "displayName", label: "Display name", minWidth: 180 },
   { id: "packageName", label: "Package name", minWidth: 220 },
   { id: "isActive", label: "Active", width: 80 }

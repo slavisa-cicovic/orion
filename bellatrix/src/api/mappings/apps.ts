@@ -2,8 +2,13 @@ import { App, CreateAppRequest } from "@/api/types/apps";
 import { AppData, AppRow } from "@/sections/apps/types";
 
 export function mapAppToRow(app: App): AppRow {
+  const baseUrl = (process.env.NEXT_PUBLIC_HOST_API ?? "").replace(/\/$/, "");
+  const apiBase = baseUrl.endsWith("/api") ? baseUrl : `${baseUrl}/api`;
+  const iconUrl = app.iconUrl ? `${apiBase}/uploads/${app.iconUrl.replace(/^\/+/, "")}` : null;
+
   return {
     id: String(app.id),
+    iconUrl,
     displayName: app.displayName,
     packageName: app.packageName,
     isActive: app.active
