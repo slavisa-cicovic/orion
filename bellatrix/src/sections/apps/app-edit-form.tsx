@@ -114,7 +114,7 @@ export function AppEditForm({ currentApp }: Props) {
   return (
     <FormProvider methods={methods} onSubmit={handleSubmit(onSubmit)}>
       <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
+        <Grid item xs={12}>
           <Card>
             <CardHeader title={currentApp ? "Edit app" : "Create app"} />
             <CardContent>
