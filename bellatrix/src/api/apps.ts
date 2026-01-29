@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import {
   mapAppsToRows,
   mapAppDataToCreateAppRequest,
+  mapAppDataToUpdateAppRequest,
 } from "src/api/mappings/apps";
 import { App, AppListResponse } from "@/api/types/apps";
 import axiosInstance, { endpoints, fetcher } from "src/utils/axios";
@@ -50,10 +51,33 @@ export function useGetApps(params?: AppsQuery) {
   );
 }
 
+export function useGetApp(appId: string | null) {
+  const URL = appId ? endpoints.apps.details(appId) : null;
+  const { data, isLoading, error, isValidating, mutate } = useSWR<App>(URL, fetcher);
+
+  return useMemo(
+    () => ({
+      app: data ?? null,
+      appLoading: isLoading,
+      appError: error,
+      appValidating: isValidating,
+      mutate,
+    }),
+    [data, error, isLoading, isValidating, mutate],
+  );
+}
+
 export const AppApi = {
   async createApp(appData: AppData): Promise<App> {
     const payload = mapAppDataToCreateAppRequest(appData);
     const res = await axiosInstance.post(endpoints.apps.list, payload);
+
+    return res.data;
+  },
+  async updateApp(appId: string, appData: AppData): Promise<App> {
+    const reason = appData.reason ?? "";
+    const payload = mapAppDataToUpdateAppRequest(appData, reason);
+    const res = await axiosInstance.put(endpoints.apps.details(appId), payload);
 
     return res.data;
   },

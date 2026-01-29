@@ -1,4 +1,4 @@
-import { App, CreateAppRequest } from "@/api/types/apps";
+import { App, CreateAppRequest, UpdateAppRequest } from "@/api/types/apps";
 import { AppData, AppRow } from "@/sections/apps/types";
 
 export function mapAppToRow(app: App): AppRow {
@@ -29,5 +29,12 @@ export function mapAppDataToCreateAppRequest(appData: AppData): CreateAppRequest
     description: description.length > 0 ? description : null,
     iconUrl: iconUrl.length > 0 ? iconUrl : null,
     active: appData.active
+  };
+}
+
+export function mapAppDataToUpdateAppRequest(appData: AppData, reason: string): UpdateAppRequest {
+  return {
+    ...mapAppDataToCreateAppRequest(appData),
+    reason: reason.trim()
   };
 }

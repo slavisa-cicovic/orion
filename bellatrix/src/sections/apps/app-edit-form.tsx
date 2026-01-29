@@ -36,7 +36,12 @@ export function AppEditForm({ currentApp }: Props) {
     packageName: Yup.string().trim().required("Package name is required"),
     description: Yup.string().trim().defined(),
     iconUrl: Yup.string().trim().defined(),
-    active: Yup.boolean().required()
+    active: Yup.boolean().required(),
+    reason: Yup.string().trim().when([], {
+      is: () => Boolean(currentApp?.id),
+      then: (schema) => schema.required("Reason is required"),
+      otherwise: (schema) => schema.optional()
+    })
   });
 
   const defaultValues = useMemo<AppData>(
@@ -45,7 +50,8 @@ export function AppEditForm({ currentApp }: Props) {
       packageName: currentApp?.packageName ?? "",
       description: currentApp?.description ?? "",
       iconUrl: currentApp?.iconUrl ?? "",
-      active: currentApp?.active ?? true
+      active: currentApp?.active ?? true,
+      reason: ""
     }),
     [currentApp]
   );
@@ -92,7 +98,11 @@ export function AppEditForm({ currentApp }: Props) {
         iconUrl = upload.path;
       }
       const payload = { ...data, iconUrl };
-      await AppApi.createApp(payload);
+      if (currentApp?.id) {
+        await AppApi.updateApp(String(currentApp.id), payload);
+      } else {
+        await AppApi.createApp(payload);
+      }
       reset(defaultValues);
       enqueueSnackbar(currentApp?.id ? "update success" : "create_success");
       router.push(paths.dashboard.apps.root);
@@ -143,6 +153,11 @@ export function AppEditForm({ currentApp }: Props) {
                 <Grid item xs={12}>
                   <RHFSwitch name="active" label="Active" />
                 </Grid>
+                {currentApp?.id && (
+                  <Grid item xs={12}>
+                    <RHFTextField name="reason" label="Reason" />
+                  </Grid>
+                )}
               </Grid>
             </CardContent>
             <CardActions sx={{ justifyContent: "flex-end", px: 3, pb: 3 }}>

@@ -44,6 +44,11 @@ public class ApplicationController {
         return ResponseEntity.ok(applicationService.list(page, pageSize, sort, search, isActive));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<ApplicationResponse> details(@PathVariable Long id) {
+        return ResponseEntity.ok(applicationService.getById(id));
+    }
+
     @PostMapping
     public ResponseEntity<ApplicationResponse> create(@Valid @RequestBody ApplicationCreateRequest request) {
         return ResponseEntity.ok(applicationService.create(request));

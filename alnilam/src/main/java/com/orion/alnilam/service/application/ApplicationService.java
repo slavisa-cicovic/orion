@@ -76,6 +76,12 @@ public class ApplicationService {
         return toResponse(saved);
     }
 
+    public ApplicationResponse getById(Long id) {
+        Application app = applicationRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Application not found"));
+        return toResponse(app);
+    }
+
     public ApplicationResponse update(Long id, ApplicationUpdateRequest request) {
         Application app = applicationRepository.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Application not found"));

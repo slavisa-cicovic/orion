@@ -8,12 +8,14 @@ import { AppEditForm } from "../app-edit-form";
 import { useGetAppVersions } from "@/api/app-versions";
 import AppVersionsTable from "@/sections/app-versions/app-versions-table";
 import { RouterLink } from "@/routes/components";
+import { useGetApp } from "@/api/apps";
 
 type Props = {
   appId: string;
 };
 
 export default function AppDetailsView({ appId }: Props) {
+  const { app } = useGetApp(appId);
   const {
     versionRows,
     versionsLoading,
@@ -42,7 +44,7 @@ export default function AppDetailsView({ appId }: Props) {
           }}
         >
           <Box>
-            <AppEditForm />
+            <AppEditForm currentApp={app ?? undefined} />
           </Box>
           <Box>
             <Card>

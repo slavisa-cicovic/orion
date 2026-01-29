@@ -21,3 +21,7 @@ export type CreateAppRequest = {
   iconUrl: string | null;
   active: boolean;
 };
+
+export type UpdateAppRequest = CreateAppRequest & {
+  reason: string;
+};

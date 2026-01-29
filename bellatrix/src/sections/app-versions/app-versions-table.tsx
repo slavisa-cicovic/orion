@@ -35,7 +35,7 @@ type Props = {
 };
 
 export default function AppVersionsTable({ rows, loading, empty }: Props) {
-  const table = useTable({ defaultOrderBy: "versionCode", defaultRowsPerPage: 10, defaultDense: true });
+  const table = useTable({ defaultOrderBy: "versionCode", defaultRowsPerPage: 25, defaultDense: true });
 
   const dataSorted = useMemo(
     () => rows.slice().sort(getComparator(table.order, table.orderBy)),
