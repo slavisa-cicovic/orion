@@ -1,6 +1,6 @@
 "use client";
 
-import { Stack } from "@mui/material";
+import { Box, Stack } from "@mui/material";
 import MainLayout from "@/layouts/main/MainLayout";
 import CustomBreadcrumbs from "@/components/custom-breadcrumbs";
 import { paths } from "@/routes/paths";
@@ -20,7 +20,16 @@ export default function AppsCreateView() {
           ]}
           sx={{ mb: { xs: 3, md: 5 } }}
         />
-        <AppEditForm />
+        <Box
+          sx={{
+            display: { xs: "flex", md: "grid" },
+            flexDirection: "column",
+            gridTemplateColumns: { md: "5fr 7fr" },
+            gap: 3
+          }}
+        >
+          <AppEditForm />
+        </Box>
       </Stack>
     </MainLayout>
   );
