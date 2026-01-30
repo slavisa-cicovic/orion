@@ -11,6 +11,7 @@ import FormProvider, { RHFTextField } from "@/components/hook-form";
 import RHFSwitch from "@/components/hook-form/rhf-switch";
 import RHFAutocomplete from "@/components/hook-form/rhf-autocomplete";
 import { UploadApi } from "@/api/uploads";
+import { AppVersionApi } from "@/api/app-versions";
 import { useSnackbar } from "notistack";
 
 type AppVersionData = {
@@ -126,15 +127,18 @@ export default function AppVersionEditForm({ appId }: Props) {
         active: data.active
       };
 
-      console.info("TODO: submit app version", payload);
+      await AppVersionApi.createVersion(payload);
       enqueueSnackbar("create_success");
       reset(defaultValues);
     } catch (error: unknown) {
       console.error(error);
-      let message = "Unknown error";
-
+      let message = "Unknown error";        
       if (axios.isAxiosError(error)) {
-        const apiMessage = error.response?.data?.detail ?? error.response?.data?.title;
+        const apiMessage =
+          error.response?.data?.reason ??
+          error.response?.data?.detail ??
+          error.response?.data?.title ??
+          error.response?.data?.message;
         message = apiMessage || error.message || message;
       } else if (error instanceof Error) {
         message = error.message;

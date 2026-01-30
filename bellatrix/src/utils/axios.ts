@@ -42,7 +42,9 @@ export const endpoints = {
     details: (id: string) => `/admin/applications/${id}`,
   },
   appVersions: {
+    base: "/admin/app-versions",
     list: (appId: string) => `/admin/app-versions/application/${appId}`,
+    details: (id: string) => `/admin/app-versions/${id}`,
   },
   companies: {
     list: '/admin/companies',

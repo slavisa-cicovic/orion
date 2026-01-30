@@ -1,7 +1,12 @@
 import { useMemo } from "react";
 import useSWR from "swr";
-import { endpoints, fetcher } from "@/utils/axios";
-import { AppVersionListResponse } from "@/api/types/app-versions";
+import axiosInstance, { endpoints, fetcher } from "@/utils/axios";
+import {
+  AppVersion,
+  AppVersionListResponse,
+  CreateAppVersionRequest,
+  UpdateAppVersionRequest,
+} from "@/api/types/app-versions";
 import { mapAppVersionsToRows } from "@/api/mappings/app-versions";
 
 type AppVersionsQuery = {
@@ -33,3 +38,15 @@ export function useGetAppVersions(params: AppVersionsQuery) {
     [data, error, isLoading, isValidating, mutate]
   );
 }
+
+export const AppVersionApi = {
+  async createVersion(payload: CreateAppVersionRequest): Promise<AppVersion> {
+    const res = await axiosInstance.post(endpoints.appVersions.base, payload);
+    console.error(JSON.stringify(res));
+    return res.data;
+  },
+  async updateVersion(versionId: string, payload: UpdateAppVersionRequest): Promise<AppVersion> {
+    const res = await axiosInstance.put(endpoints.appVersions.details(versionId), payload);
+    return res.data;
+  },
+};
