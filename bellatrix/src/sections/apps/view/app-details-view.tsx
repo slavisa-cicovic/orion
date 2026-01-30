@@ -31,7 +31,7 @@ export default function AppDetailsView({ appId }: Props) {
           links={[
             { name: "Overview", href: paths.dashboard.root },
             { name: "Applications", href: paths.dashboard.apps.root },
-            { name: appId }
+            { name: app?.displayName }
           ]}
           sx={{ mb: { xs: 3, md: 5 } }}
         />
@@ -58,6 +58,7 @@ export default function AppDetailsView({ appId }: Props) {
               />
               <CardContent>
                 <AppVersionsTable
+                  appId={appId}
                   rows={versionRows}
                   loading={versionsLoading}
                   empty={versionsEmpty}

@@ -53,6 +53,9 @@ public class ApplicationVersion {
     @Column(name = "file_url")
     private String fileUrl;
 
+    @Column(name = "original_file_name")
+    private String originalFileName;
+
     private String checksum;
 
     @Enumerated(EnumType.STRING)

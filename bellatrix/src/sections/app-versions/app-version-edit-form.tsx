@@ -1,18 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as Yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import axios from "axios";
-import { Alert, Button, Card, CardActions, CardContent, CardHeader } from "@mui/material";
+import { Alert, Button, Card, CardActions, CardContent, CardHeader, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
-import FormProvider, { RHFTextField } from "@/components/hook-form";
+import FormProvider, { RHFTextField, RHFUpload } from "@/components/hook-form";
 import RHFSwitch from "@/components/hook-form/rhf-switch";
 import RHFAutocomplete from "@/components/hook-form/rhf-autocomplete";
 import { UploadApi } from "@/api/uploads";
 import { AppVersionApi } from "@/api/app-versions";
 import { useSnackbar } from "notistack";
+import { AppVersion } from "@/api/types/app-versions";
 
 type AppVersionData = {
   versionName: string;
@@ -21,25 +22,33 @@ type AppVersionData = {
   minSdk: number | "";
   targetSdk: number | "";
   fileUrl: string;
+  fileRef: File | string | null;
   checksum: string;
   active: boolean;
+  reason?: string;
 };
 
 type Props = {
   appId: string;
+  currentAppVersion?: AppVersion;
+  isLatest?: boolean;
+  publishedToCompany?: boolean;
 };
 
 const PLATFORM_OPTIONS: Array<AppVersionData["platform"]> = ["ANDROID", "IOS"];
 
-export default function AppVersionEditForm({ appId }: Props) {
+export default function AppVersionEditForm({
+  appId,
+  currentAppVersion,
+  isLatest = true,
+  publishedToCompany = false
+}: Props) {
   const { enqueueSnackbar } = useSnackbar();
   const [errorMsg, setErrorMsg] = useState("");
-  const [apkFile, setApkFile] = useState<File | null>(null);
-  const [ipaFile, setIpaFile] = useState<File | null>(null);
 
   const FILE_MAX_SIZE = 300 * 1024 * 1024;
 
-  const AppVersionSchema: Yup.ObjectSchema<AppVersionData> = Yup.object({
+  const AppVersionSchema = Yup.object({
     versionName: Yup.string().trim().required("Version name is required"),
     versionCode: Yup.number().typeError("Version code must be a number").required("Version code is required"),
     platform: Yup.mixed<AppVersionData["platform"]>()
@@ -48,22 +57,30 @@ export default function AppVersionEditForm({ appId }: Props) {
     minSdk: Yup.mixed<number | "">().defined(),
     targetSdk: Yup.mixed<number | "">().defined(),
     fileUrl: Yup.string().trim().defined(),
+    fileRef: Yup.mixed().nullable().defined(),
     checksum: Yup.string().trim().defined(),
-    active: Yup.boolean().required()
-  });
+    active: Yup.boolean().required(),
+    reason: Yup.string().trim().when([], {
+      is: () => Boolean(currentAppVersion?.id),
+      then: (schema) => schema.required("Reason is required"),
+      otherwise: (schema) => schema.optional()
+    })
+  }) as Yup.ObjectSchema<AppVersionData>;
 
   const defaultValues = useMemo<AppVersionData>(
     () => ({
-      versionName: "",
-      versionCode: 1,
-      platform: "ANDROID",
-      minSdk: "",
-      targetSdk: "",
-      fileUrl: "",
-      checksum: "",
-      active: true
+      versionName: currentAppVersion?.versionName ?? "",
+      versionCode: currentAppVersion?.versionCode ?? 1,
+      platform: currentAppVersion?.platform ?? "ANDROID",
+      minSdk: currentAppVersion?.minSdk ?? "",
+      targetSdk: currentAppVersion?.targetSdk ?? "",
+      fileUrl: currentAppVersion?.fileUrl ?? "",
+      fileRef: currentAppVersion?.fileUrl ?? "",
+      checksum: currentAppVersion?.checksum ?? "",
+      active: currentAppVersion?.active ?? true,
+      reason: ""
     }),
-    []
+    [currentAppVersion]
   );
 
   const methods = useForm<AppVersionData>({
@@ -76,42 +93,40 @@ export default function AppVersionEditForm({ appId }: Props) {
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { isSubmitting }
   } = methods;
 
+  useEffect(() => {
+    reset(defaultValues);
+  }, [defaultValues, reset]);
+
   const platform = watch("platform");
+  const fileRef = watch("fileRef");
+  const lockAll = Boolean(currentAppVersion?.id) && !isLatest;
+  const lockVersionFields = Boolean(currentAppVersion?.id) && publishedToCompany;
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] ?? null;
-    if (!file) {
-      setApkFile(null);
-      setIpaFile(null);
-      return;
+  const selectedFileName = useMemo(() => {
+    if (!fileRef) return "";
+    if (typeof fileRef === "string") {
+      const parts = fileRef.split("/");
+      return parts[parts.length - 1] || fileRef;
     }
+    return fileRef.name || "";
+  }, [fileRef]);
 
-    if (file.size > FILE_MAX_SIZE) {
-      setErrorMsg("File must be smaller than 300MB.");
-      return;
-    }
-
-    setErrorMsg("");
-    if (platform === "ANDROID") {
-      setApkFile(file);
-    } else {
-      setIpaFile(file);
-    }
-  };
+  const originalFileName = currentAppVersion?.originalFileName ?? "";
 
   const onSubmit = async (data: AppVersionData) => {
     try {
       setErrorMsg("");
-      let fileUrl = data.fileUrl;
-      if (platform === "ANDROID" && apkFile) {
-        const upload = await UploadApi.uploadFile("APK", apkFile);
-        fileUrl = upload.path;
+      if (lockAll) {
+        setErrorMsg("Only the latest version can be updated.");
+        return;
       }
-      if (platform === "IOS" && ipaFile) {
-        const upload = await UploadApi.uploadFile("IPA", ipaFile);
+      let fileUrl = data.fileUrl;
+      if (data.fileRef && typeof data.fileRef !== "string") {
+        const upload = await UploadApi.uploadFile(platform === "ANDROID" ? "APK" : "IPA", data.fileRef);
         fileUrl = upload.path;
       }
 
@@ -123,16 +138,25 @@ export default function AppVersionEditForm({ appId }: Props) {
         minSdk: data.minSdk === "" ? null : Number(data.minSdk),
         targetSdk: data.targetSdk === "" ? null : Number(data.targetSdk),
         fileUrl,
+        originalFileName: selectedFileName || originalFileName || null,
         checksum: data.checksum.trim() || null,
         active: data.active
       };
 
-      await AppVersionApi.createVersion(payload);
-      enqueueSnackbar("create_success");
+      if (currentAppVersion?.id) {
+        await AppVersionApi.updateVersion(currentAppVersion.id, {
+          ...payload,
+          reason: data.reason?.trim() || ""
+        });
+        enqueueSnackbar("update_success");
+      } else {
+        await AppVersionApi.createVersion(payload);
+        enqueueSnackbar("create_success");
+      }
       reset(defaultValues);
     } catch (error: unknown) {
       console.error(error);
-      let message = "Unknown error";        
+      let message = "Unknown error";
       if (axios.isAxiosError(error)) {
         const apiMessage =
           error.response?.data?.reason ??
@@ -161,45 +185,69 @@ export default function AppVersionEditForm({ appId }: Props) {
                     <Alert severity="error">{errorMsg}</Alert>
                   </Grid>
                 )}
-                <Grid item xs={12} md={6}>
-                  <RHFTextField name="versionName" label="Version name" />
+                <Grid item xs={12}>
+                  <RHFTextField name="versionName" label="Version name" disabled={lockAll || lockVersionFields} />
                 </Grid>
-                <Grid item xs={12} md={6}>
-                  <RHFTextField name="versionCode" label="Version code" type="number" />
+                <Grid item xs={12}>
+                  <RHFTextField name="versionCode" label="Version code" type="number" disabled={lockAll || lockVersionFields} />
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12}>
                   <RHFAutocomplete
                     name="platform"
                     label="Platform"
                     options={PLATFORM_OPTIONS}
                     getOptionLabel={(option) => option}
                     isOptionEqualToValue={(option, value) => option === value}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <RHFTextField name="minSdk" label="Min SDK" type="number" />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <RHFTextField name="targetSdk" label="Target SDK" type="number" />
-                </Grid>
-                <Grid item xs={12}>
-                  <RHFTextField name="checksum" label="Checksum" />
-                </Grid>
-                <Grid item xs={12}>
-                  <input
-                    accept={platform === "ANDROID" ? ".apk" : ".ipa"}
-                    type="file"
-                    onChange={handleFileChange}
+                    disabled={lockAll || lockVersionFields}
                   />
                 </Grid>
                 <Grid item xs={12}>
-                  <RHFSwitch name="active" label="Active" />
+                  <RHFTextField name="minSdk" label="Min SDK" type="number" disabled={lockAll} />
                 </Grid>
+                <Grid item xs={12}>
+                  <RHFTextField name="targetSdk" label="Target SDK" type="number" disabled={lockAll} />
+                </Grid>
+                <Grid item xs={12}>
+                  <RHFTextField name="checksum" label="Checksum" disabled={lockAll || lockVersionFields} />
+                </Grid>
+                <Grid item xs={12}>
+                  <RHFUpload
+                    name="fileRef"
+                    maxSize={FILE_MAX_SIZE}
+                    accept={
+                      platform === "ANDROID"
+                        ? { "application/vnd.android.package-archive": [".apk"] }
+                        : { "application/octet-stream": [".ipa"] }
+                    }
+                    helperText={
+                      (selectedFileName || originalFileName) ? (
+                        <Typography variant="caption" sx={{ display: "block", mt: 1 }}>
+                          {selectedFileName ? `Selected file: ${selectedFileName}` : `Original file: ${originalFileName}`}
+                        </Typography>
+                      ) : undefined
+                    }
+                    onDrop={(acceptedFiles) => {
+                      const file = acceptedFiles[0];
+                      if (!file) return;
+                      setErrorMsg("");
+                      setValue("fileRef", file, { shouldValidate: true });
+                    }}
+                    disabled={lockAll || lockVersionFields}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <RHFSwitch name="active" label="Active" disabled={lockAll} />
+                </Grid>
+                {currentAppVersion?.id && (
+                  <Grid item xs={12}>
+                    <RHFTextField name="reason" label="Reason" disabled={lockAll} />
+                  </Grid>
+                )}
               </Grid>
             </CardContent>
             <CardActions sx={{ justifyContent: "flex-end", px: 3, pb: 3 }}>
-              <Button type="submit" variant="contained" disabled={isSubmitting}>
-                Create version
+              <Button type="submit" variant="contained" disabled={isSubmitting || lockAll}>
+                {currentAppVersion?.id ? "Save changes" : "Create version"}
               </Button>
             </CardActions>
           </Card>

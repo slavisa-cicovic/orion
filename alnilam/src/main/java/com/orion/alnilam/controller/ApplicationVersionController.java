@@ -1,14 +1,7 @@
 package com.orion.alnilam.controller;
 
-import com.orion.alnilam.dto.request.ApplicationVersionCreateRequest;
-import com.orion.alnilam.dto.request.ApplicationVersionDeleteRequest;
-import com.orion.alnilam.dto.request.ApplicationVersionPublishRequest;
-import com.orion.alnilam.dto.request.ApplicationVersionStatusRequest;
-import com.orion.alnilam.dto.request.ApplicationVersionUpdateRequest;
-import com.orion.alnilam.dto.response.ApplicationVersionResponse;
-import com.orion.alnilam.service.application.ApplicationVersionService;
-import jakarta.validation.Valid;
 import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -19,6 +12,17 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.orion.alnilam.dto.request.ApplicationVersionCreateRequest;
+import com.orion.alnilam.dto.request.ApplicationVersionDeleteRequest;
+import com.orion.alnilam.dto.request.ApplicationVersionPublishRequest;
+import com.orion.alnilam.dto.request.ApplicationVersionStatusRequest;
+import com.orion.alnilam.dto.request.ApplicationVersionUpdateRequest;
+import com.orion.alnilam.dto.response.ApplicationVersionCompanyStatusResponse;
+import com.orion.alnilam.dto.response.ApplicationVersionResponse;
+import com.orion.alnilam.service.application.ApplicationVersionService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/admin/app-versions")
@@ -35,18 +39,26 @@ public class ApplicationVersionController {
         return ResponseEntity.ok(applicationVersionService.listByApplication(applicationId));
     }
 
+    @GetMapping("/{id}/companies")
+    public ResponseEntity<List<ApplicationVersionCompanyStatusResponse>> listCompanies(@PathVariable Long id) {
+        return ResponseEntity.ok(applicationVersionService.listCompanyStatuses(id));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApplicationVersionResponse> details(@PathVariable Long id) {
+        return ResponseEntity.ok(applicationVersionService.getById(id));
+    }
+
     @PostMapping
     public ResponseEntity<ApplicationVersionResponse> create(
-        @Valid @RequestBody ApplicationVersionCreateRequest request
-    ) {
+            @Valid @RequestBody ApplicationVersionCreateRequest request) {
         return ResponseEntity.ok(applicationVersionService.create(request));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApplicationVersionResponse> update(
-        @PathVariable Long id,
-        @Valid @RequestBody ApplicationVersionUpdateRequest request
-    ) {
+            @PathVariable Long id,
+            @Valid @RequestBody ApplicationVersionUpdateRequest request) {
         return ResponseEntity.ok(applicationVersionService.update(id, request));
     }
 
@@ -58,16 +70,14 @@ public class ApplicationVersionController {
 
     @PostMapping("/status")
     public ResponseEntity<List<ApplicationVersionResponse>> updateStatus(
-        @Valid @RequestBody ApplicationVersionStatusRequest request
-    ) {
+            @Valid @RequestBody ApplicationVersionStatusRequest request) {
         return ResponseEntity.ok(applicationVersionService.updateStatusBulk(request));
     }
 
     @PostMapping("/{id}/publish")
     public ResponseEntity<ApplicationVersionResponse> publish(
-        @PathVariable Long id,
-        @Valid @RequestBody ApplicationVersionPublishRequest request
-    ) {
+            @PathVariable Long id,
+            @Valid @RequestBody ApplicationVersionPublishRequest request) {
         return ResponseEntity.ok(applicationVersionService.publish(id, request));
     }
 }

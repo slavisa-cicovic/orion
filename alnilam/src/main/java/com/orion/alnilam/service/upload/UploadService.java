@@ -58,7 +58,7 @@ public class UploadService {
         }
 
         String relativePath = type.getFolder() + "/" + fileName;
-        return new UploadResponse(relativePath, fileName, contentType, file.getSize());
+        return new UploadResponse(relativePath, fileName, originalName, contentType, file.getSize());
     }
 
     private String extractExtension(String filename) {

@@ -45,6 +45,7 @@ export const endpoints = {
     base: "/admin/app-versions",
     list: (appId: string) => `/admin/app-versions/application/${appId}`,
     details: (id: string) => `/admin/app-versions/${id}`,
+    companies: (id: string) => `/admin/app-versions/${id}/companies`,
   },
   companies: {
     list: '/admin/companies',

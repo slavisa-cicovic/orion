@@ -24,17 +24,17 @@ const TABLE_HEAD = [
   { id: "versionName", label: "Version", minWidth: 140 },
   { id: "versionCode", label: "Code", width: 90 },
   { id: "platform", label: "Platform", width: 120 },
-  { id: "status", label: "Status", minWidth: 140 },
-  { id: "createdAt", label: "Created", minWidth: 140 }
+  { id: "status", label: "Status", minWidth: 140 }
 ];
 
 type Props = {
+  appId: string,
   rows: AppVersionRow[];
   loading: boolean;
   empty: boolean;
 };
 
-export default function AppVersionsTable({ rows, loading, empty }: Props) {
+export default function AppVersionsTable({ appId, rows, loading, empty }: Props) {
   const table = useTable({ defaultOrderBy: "versionCode", defaultRowsPerPage: 25, defaultDense: true });
 
   const dataSorted = useMemo(
@@ -68,7 +68,7 @@ export default function AppVersionsTable({ rows, loading, empty }: Props) {
 
             {!loading &&
               dataInPage.map((row) => (
-                <AppVersionsTableRow key={row.id} row={row} />
+                <AppVersionsTableRow key={row.id} row={row} appId={appId} />
               ))}
 
             <TableEmptyRows

@@ -5,5 +5,5 @@ export type AppVersionRow = {
   versionCode: number;
   platform: "ANDROID" | "IOS";
   status: string;
-  createdAt: string;
+  active: boolean;
 };

@@ -25,6 +25,7 @@ export const paths = {
       root: `${ROOTS.DASHBOARD}/apps`,
       details: (id: string) => `${ROOTS.DASHBOARD}/apps/${id}`,
       versionNew: (id: string) => `${ROOTS.DASHBOARD}/apps/${id}/versions/new`,
+      versionDetails: (id: string, versionId: string) => `${ROOTS.DASHBOARD}/apps/${id}/versions/${versionId}`,
       new: `${ROOTS.DASHBOARD}/apps/new`,
     },
     companies: {

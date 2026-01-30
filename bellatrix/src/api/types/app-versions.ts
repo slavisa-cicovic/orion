@@ -1,18 +1,17 @@
 export type AppVersion = {
   id: string;
-  appId: string;
-  appName: string | null;
+  applicationId: string;
+  applicationName: string | null;
   versionName: string;
   versionCode: number;
   platform: "ANDROID" | "IOS";
   minSdk: number | null;
   targetSdk: number | null;
   fileUrl: string;
+  originalFileName: string | null;
   checksum: string;
-  sizeBytes: number | null;
-  releaseNotes: string | null;
   status: string;
-  createdAt: string;
+  active: boolean;
 };
 
 export type AppVersionListResponse = AppVersion[];
@@ -25,6 +24,7 @@ export type CreateAppVersionRequest = {
   minSdk?: number | null;
   targetSdk?: number | null;
   fileUrl?: string | null;
+  originalFileName?: string | null;
   checksum?: string | null;
   active: boolean;
 };
@@ -36,7 +36,27 @@ export type UpdateAppVersionRequest = {
   minSdk?: number | null;
   targetSdk?: number | null;
   fileUrl?: string | null;
+  originalFileName?: string | null;
   checksum?: string | null;
   active: boolean;
   reason: string;
+};
+
+export type PublishAppVersionRequest = {
+  companyIds: number[];
+  reason: string;
+};
+
+export type AppVersionCompanyStatus = {
+  companyId: number;
+  companyName: string;
+  address: string | null;
+  city: string | null;
+  zip: string | null;
+  latestPublishedVersionCode: number | null;
+  latestPublishedVersionName: string | null;
+  publishedToCompany: boolean;
+  publishedToUsers: boolean;
+  selectable: boolean;
+  selectableReason: string | null;
 };

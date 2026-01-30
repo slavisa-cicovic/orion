@@ -1,10 +1,15 @@
 import { forwardRef } from 'react';
+import type { PropsWithChildren } from 'react';
 import Link, { LinkProps } from 'next/link';
 
 // ----------------------------------------------------------------------
 
-const RouterLink = forwardRef<HTMLAnchorElement, LinkProps>(({ ...other }, ref) => (
-  <Link ref={ref} {...other} />
+type Props = PropsWithChildren<LinkProps>;
+
+const RouterLink = forwardRef<HTMLAnchorElement, Props>(({ children, ...other }, ref) => (
+  <Link ref={ref} {...other}>
+    {children}
+  </Link>
 ));
 
 export default RouterLink;

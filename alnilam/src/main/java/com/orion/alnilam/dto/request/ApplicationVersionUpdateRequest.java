@@ -21,6 +21,7 @@ public class ApplicationVersionUpdateRequest {
     private Integer minSdk;
     private Integer targetSdk;
     private String fileUrl;
+    private String originalFileName;
     private String checksum;
     private boolean active;
 
