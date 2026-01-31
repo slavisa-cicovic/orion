@@ -44,10 +44,9 @@ import { CompaniesTableFiltersResult } from "@/sections/companies/companies-tabl
 
 const TABLE_HEAD = [
   { id: "icon", label: "", width: 64 },
-  { id: "code", label: "Code", minWidth: 120 },
   { id: "name", label: "Name", minWidth: 180 },
-  { id: "city", label: "City", minWidth: 140 },
-  { id: "zip", label: "Zip", minWidth: 100 },
+  { id: "code", label: "Code", minWidth: 80 },
+  { id: "city", label: "Location", minWidth: 180 },
   { id: "active", label: "Active", width: 80 }
 ];
 
@@ -68,7 +67,6 @@ export default function CompaniesListView() {
     code: "code",
     name: "name",
     city: "city",
-    zip: "zip",
     active: "active"
   };
   const sortParam = `${sortFieldMap[table.orderBy] ?? "name"},${table.order}`;

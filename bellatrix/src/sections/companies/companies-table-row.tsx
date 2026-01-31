@@ -8,6 +8,7 @@ import Avatar from "@mui/material/Avatar";
 import { CompanyRow } from "@/sections/companies/types";
 import { RouterLink } from "@/routes/components";
 import { paths } from "@/routes/paths";
+import { Box, ListItemText } from "@mui/material";
 
 type CompaniesTableRowProps = {
   row: CompanyRow;
@@ -33,10 +34,10 @@ export default function CompaniesTableRow({
           <Tooltip title="System company cannot be modified">
             <span>{checkbox}</span>
           </Tooltip>
-      ) : (
-        checkbox
-      )}
-    </TableCell>
+        ) : (
+          checkbox
+        )}
+      </TableCell>
       <TableCell>
         <Avatar
           src={row.iconUrl ?? undefined}
@@ -47,14 +48,23 @@ export default function CompaniesTableRow({
           {row.name?.[0] ?? "C"}
         </Avatar>
       </TableCell>
+      <TableCell>
+        <ListItemText
+          disableTypography
+          primary={
+            <RouterLink href={paths.dashboard.companies.details(row.id)}>
+              {row.name}
+            </RouterLink>
+          }
+          secondary={null}
+        />
+      </TableCell>
       <TableCell>{row.code}</TableCell>
       <TableCell>
-        <RouterLink href={paths.dashboard.companies.details(row.id)}>
-          {row.name}
-        </RouterLink>
+        <Box component="span" sx={{ typography: "body2" }}>
+          {[row.zip, row.city].filter(Boolean).join(" ").trim() || "-"}
+        </Box>
       </TableCell>
-      <TableCell>{row.city}</TableCell>
-      <TableCell>{row.zip}</TableCell>
       <TableCell>{row.active ? "Yes" : "No"}</TableCell>
     </TableRow>
   );
