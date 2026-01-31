@@ -5,12 +5,25 @@ import com.orion.alnilam.dto.request.CompanyCreateRequest;
 import com.orion.alnilam.dto.request.CompanyDeleteRequest;
 import com.orion.alnilam.dto.request.CompanyStatusRequest;
 import com.orion.alnilam.dto.request.CompanyUpdateRequest;
+import com.orion.alnilam.domain.application.ApplicationVersion;
+import com.orion.alnilam.domain.application.CompanyApplicationAccess;
+import com.orion.alnilam.domain.enums.CompanyUserStatus;
+import com.orion.alnilam.domain.enums.RegistrationStatus;
+import com.orion.alnilam.domain.registration.RegistrationRequest;
+import com.orion.alnilam.domain.user.User;
+import com.orion.alnilam.dto.response.CompanyAppSummaryResponse;
 import com.orion.alnilam.dto.response.CompanyResponse;
+import com.orion.alnilam.dto.response.CompanyUserStatusResponse;
 import com.orion.alnilam.dto.response.PagedResponse;
 import com.orion.alnilam.repository.CompanyRepository;
+import com.orion.alnilam.repository.CompanyApplicationAccessRepository;
+import com.orion.alnilam.repository.RegistrationRequestRepository;
+import com.orion.alnilam.repository.UserRepository;
 import com.orion.alnilam.service.audit.AuditLogService;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -19,10 +32,22 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class CompanyService {
     private final CompanyRepository companyRepository;
+    private final CompanyApplicationAccessRepository accessRepository;
+    private final RegistrationRequestRepository registrationRequestRepository;
+    private final UserRepository userRepository;
     private final AuditLogService auditLogService;
 
-    public CompanyService(CompanyRepository companyRepository, AuditLogService auditLogService) {
+    public CompanyService(
+        CompanyRepository companyRepository,
+        CompanyApplicationAccessRepository accessRepository,
+        RegistrationRequestRepository registrationRequestRepository,
+        UserRepository userRepository,
+        AuditLogService auditLogService
+    ) {
         this.companyRepository = companyRepository;
+        this.accessRepository = accessRepository;
+        this.registrationRequestRepository = registrationRequestRepository;
+        this.userRepository = userRepository;
         this.auditLogService = auditLogService;
     }
 
@@ -90,6 +115,67 @@ public class CompanyService {
         Company saved = companyRepository.save(company);
         auditLogService.log("COMPANY", saved.getId(), "UPDATE", request.getReason());
         return toResponse(saved);
+    }
+
+    public CompanyResponse getById(Long id) {
+        Company company = companyRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Company not found"));
+        return toResponse(company);
+    }
+
+    public List<CompanyAppSummaryResponse> listCompanyApps(Long companyId) {
+        requireCompany(companyId);
+        List<CompanyApplicationAccess> accesses = accessRepository.findByCompanyIdWithApplication(companyId);
+        Map<Long, ApplicationVersion> latestByApp = new HashMap<>();
+
+        for (CompanyApplicationAccess access : accesses) {
+            ApplicationVersion version = access.getApplicationVersion();
+            Long appId = version.getApplication().getId();
+            ApplicationVersion existing = latestByApp.get(appId);
+            if (existing == null || compareVersionName(version.getVersionName(), existing.getVersionName()) > 0) {
+                latestByApp.put(appId, version);
+            }
+        }
+
+        return latestByApp.values().stream().map(version ->
+            new CompanyAppSummaryResponse(
+                version.getApplication().getId(),
+                version.getApplication().getDisplayName(),
+                version.getVersionName(),
+                0
+            )
+        ).toList();
+    }
+
+    public List<CompanyUserStatusResponse> listCompanyUsers(Long companyId) {
+        requireCompany(companyId);
+        List<User> users = userRepository.findByCompanyId(companyId);
+        List<RegistrationRequest> requests = registrationRequestRepository.findByCompanyId(companyId);
+        Map<String, RegistrationRequest> latestByEmail = new HashMap<>();
+
+        for (RegistrationRequest request : requests) {
+            if (!StringUtils.hasText(request.getEmail())) {
+                continue;
+            }
+            String key = request.getEmail().toLowerCase();
+            RegistrationRequest existing = latestByEmail.get(key);
+            if (existing == null || request.getRequestedAt().isAfter(existing.getRequestedAt())) {
+                latestByEmail.put(key, request);
+            }
+        }
+
+        return users.stream().map(user -> {
+            CompanyUserStatus status = resolveUserStatus(user, latestByEmail);
+            return new CompanyUserStatusResponse(
+                user.getId(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getEmail(),
+                status,
+                user.isActive(),
+                user.getLastLoggedInAt()
+            );
+        }).toList();
     }
 
     public void deleteBulk(CompanyDeleteRequest request) {
@@ -182,5 +268,65 @@ public class CompanyService {
             return false;
         }
         return value.toLowerCase().contains(needle);
+    }
+
+    private CompanyUserStatus resolveUserStatus(User user, Map<String, RegistrationRequest> latestByEmail) {
+        if (!StringUtils.hasText(user.getEmail())) {
+            return CompanyUserStatus.VERIFIED;
+        }
+        RegistrationRequest request = latestByEmail.get(user.getEmail().toLowerCase());
+        if (request == null) {
+            return CompanyUserStatus.VERIFIED;
+        }
+        RegistrationStatus status = request.getStatus();
+        if (status == RegistrationStatus.PENDING) {
+            return CompanyUserStatus.REGISTERED;
+        }
+        if (status == RegistrationStatus.REJECTED) {
+            return CompanyUserStatus.REJECTED;
+        }
+        return CompanyUserStatus.VERIFIED;
+    }
+
+    private void requireCompany(Long companyId) {
+        if (!companyRepository.existsById(companyId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Company not found");
+        }
+    }
+
+    private int compareVersionName(String left, String right) {
+        if (!StringUtils.hasText(left) || !StringUtils.hasText(right)) {
+            return 0;
+        }
+        String[] leftParts = left.split("\\.");
+        String[] rightParts = right.split("\\.");
+        boolean numericOnly = true;
+        for (String part : leftParts) {
+            if (!part.matches("\\d+")) {
+                numericOnly = false;
+                break;
+            }
+        }
+        if (numericOnly) {
+            for (String part : rightParts) {
+                if (!part.matches("\\d+")) {
+                    numericOnly = false;
+                    break;
+                }
+            }
+        }
+
+        if (numericOnly) {
+            int max = Math.max(leftParts.length, rightParts.length);
+            for (int i = 0; i < max; i++) {
+                int l = i < leftParts.length ? Integer.parseInt(leftParts[i]) : 0;
+                int r = i < rightParts.length ? Integer.parseInt(rightParts[i]) : 0;
+                if (l != r) {
+                    return Integer.compare(l, r);
+                }
+            }
+            return 0;
+        }
+        return left.compareToIgnoreCase(right);
     }
 }

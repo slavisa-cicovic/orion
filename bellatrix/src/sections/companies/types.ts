@@ -16,4 +16,22 @@ export type CompanyData = {
   zip: string;
   iconUrl: string;
   active: boolean;
+  reason?: string;
+};
+
+export type CompanyAppRow = {
+  appId: string;
+  appName: string;
+  latestPublishedVersionName: string;
+  publishedUsersCount: number;
+};
+
+export type CompanyUserRow = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  status: string;
+  active: boolean;
+  lastLoggedInAt: string | null;
 };

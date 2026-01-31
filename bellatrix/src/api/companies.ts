@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import useSWR from "swr";
 import axiosInstance, { endpoints, fetcher } from "@/utils/axios";
-import { Company, CompanyListResponse } from "@/api/types/companies";
-import { mapCompaniesToRows, mapCompanyDataToCreateCompanyRequest } from "@/api/mappings/companies";
+import { Company, CompanyAppSummary, CompanyListResponse, CompanyUserStatus } from "@/api/types/companies";
+import { mapCompaniesToRows, mapCompanyDataToCreateCompanyRequest, mapCompanyDataToUpdateCompanyRequest } from "@/api/mappings/companies";
 import { CompanyData } from "@/sections/companies/types";
 
 type CompaniesQuery = {
@@ -42,10 +42,67 @@ export function useGetCompanies(params?: CompaniesQuery) {
   );
 }
 
+export function useGetCompany(companyId: string | null) {
+  const url = companyId ? endpoints.companies.details(companyId) : null;
+  const { data, isLoading, error, isValidating, mutate } = useSWR<Company>(url, fetcher);
+
+  return useMemo(
+    () => ({
+      company: data ?? null,
+      companyLoading: isLoading,
+      companyError: error,
+      companyValidating: isValidating,
+      mutate
+    }),
+    [data, error, isLoading, isValidating, mutate]
+  );
+}
+
+export function useGetCompanyApps(companyId: string | null) {
+  const url = companyId ? endpoints.companies.apps(companyId) : null;
+  const { data, isLoading, error, isValidating, mutate } = useSWR<CompanyAppSummary[]>(url, fetcher);
+
+  return useMemo(
+    () => ({
+      apps: data ?? [],
+      appsLoading: isLoading,
+      appsError: error,
+      appsValidating: isValidating,
+      appsEmpty: !isLoading && !data?.length,
+      mutate
+    }),
+    [data, error, isLoading, isValidating, mutate]
+  );
+}
+
+export function useGetCompanyUsers(companyId: string | null) {
+  const url = companyId ? endpoints.companies.users(companyId) : null;
+  const { data, isLoading, error, isValidating, mutate } = useSWR<CompanyUserStatus[]>(url, fetcher);
+
+  return useMemo(
+    () => ({
+      users: data ?? [],
+      usersLoading: isLoading,
+      usersError: error,
+      usersValidating: isValidating,
+      usersEmpty: !isLoading && !data?.length,
+      mutate
+    }),
+    [data, error, isLoading, isValidating, mutate]
+  );
+}
+
 export const CompanyApi = {
   async createCompany(companyData: CompanyData): Promise<Company> {
     const payload = mapCompanyDataToCreateCompanyRequest(companyData);
     const res = await axiosInstance.post(endpoints.companies.list, payload);
+
+    return res.data;
+  },
+  async updateCompany(companyId: string, companyData: CompanyData): Promise<Company> {
+    const reason = companyData.reason ?? "";
+    const payload = mapCompanyDataToUpdateCompanyRequest(companyData, reason);
+    const res = await axiosInstance.put(endpoints.companies.details(companyId), payload);
 
     return res.data;
   },

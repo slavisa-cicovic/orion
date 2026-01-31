@@ -70,6 +70,9 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Column(name = "last_logged_in_at")
+    private Instant lastLoggedInAt;
+
     @Column(name = "updated_by_id")
     private Long updatedById;
 

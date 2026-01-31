@@ -9,6 +9,23 @@ export type Company = {
   active: boolean;
 };
 
+export type CompanyAppSummary = {
+  appId: string;
+  appName: string;
+  latestPublishedVersionName: string | null;
+  publishedUsersCount: number;
+};
+
+export type CompanyUserStatus = {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string;
+  status: "REGISTERED" | "VERIFIED" | "REJECTED";
+  active: boolean;
+  lastLoggedInAt: string | null;
+};
+
 export type CompanyListResponse = {
   items: Company[];
   page: number;

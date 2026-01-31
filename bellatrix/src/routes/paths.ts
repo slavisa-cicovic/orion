@@ -30,6 +30,7 @@ export const paths = {
     },
     companies: {
       root: `${ROOTS.DASHBOARD}/companies`,
+      details: (id: string) => `${ROOTS.DASHBOARD}/companies/${id}`,
       new: `${ROOTS.DASHBOARD}/companies/new`,
     },
     users: {

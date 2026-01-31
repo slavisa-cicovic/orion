@@ -49,6 +49,9 @@ export const endpoints = {
   },
   companies: {
     list: '/admin/companies',
+    details: (id: string) => `/admin/companies/${id}`,
+    apps: (id: string) => `/admin/companies/${id}/apps`,
+    users: (id: string) => `/admin/companies/${id}/users`,
   },
   users: {
     list: '/admin/users',

@@ -17,4 +17,13 @@ public interface CompanyApplicationAccessRepository extends JpaRepository<Compan
         where version.application.id = :applicationId
         """)
     List<CompanyApplicationAccess> findByApplicationId(@Param("applicationId") Long applicationId);
+
+    @Query("""
+        select access
+        from CompanyApplicationAccess access
+        join fetch access.applicationVersion version
+        join fetch version.application app
+        where access.companyId = :companyId
+        """)
+    List<CompanyApplicationAccess> findByCompanyIdWithApplication(@Param("companyId") Long companyId);
 }

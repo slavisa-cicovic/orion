@@ -40,7 +40,12 @@ export function CompanyEditForm({ currentCompany }: Props) {
     city: Yup.string().trim().defined(),
     zip: Yup.string().trim().defined(),
     iconUrl: Yup.string().trim().defined(),
-    active: Yup.boolean().required()
+    active: Yup.boolean().required(),
+    reason: Yup.string().trim().when([], {
+      is: () => Boolean(currentCompany?.id),
+      then: (schema) => schema.required("Reason is required"),
+      otherwise: (schema) => schema.optional()
+    })
   });
 
   const defaultValues = useMemo<CompanyData>(
@@ -51,7 +56,8 @@ export function CompanyEditForm({ currentCompany }: Props) {
       city: currentCompany?.city ?? "",
       zip: currentCompany?.zip ?? "",
       iconUrl: currentCompany?.iconUrl ?? "",
-      active: currentCompany?.active ?? true
+      active: currentCompany?.active ?? true,
+      reason: ""
     }),
     [currentCompany]
   );
@@ -98,7 +104,11 @@ export function CompanyEditForm({ currentCompany }: Props) {
         iconUrl = upload.path;
       }
       const payload = { ...data, iconUrl };
-      await CompanyApi.createCompany(payload);
+      if (currentCompany?.id) {
+        await CompanyApi.updateCompany(currentCompany.id, payload);
+      } else {
+        await CompanyApi.createCompany(payload);
+      }
       reset(defaultValues);
       enqueueSnackbar(currentCompany?.id ? 'update success' : 'create_success');
       router.push(paths.dashboard.companies.root);
@@ -155,6 +165,11 @@ export function CompanyEditForm({ currentCompany }: Props) {
                 <Grid item xs={12}>
                   <RHFSwitch name="active" label="Active" />
                 </Grid>
+                {currentCompany?.id && (
+                  <Grid item xs={12}>
+                    <RHFTextField name="reason" label="Reason" />
+                  </Grid>
+                )}
               </Grid>
             </CardContent>
             <CardActions sx={{ justifyContent: "flex-end", px: 3, pb: 3 }}>

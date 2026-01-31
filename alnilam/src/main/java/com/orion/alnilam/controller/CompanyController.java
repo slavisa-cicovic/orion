@@ -18,7 +18,9 @@ import com.orion.alnilam.dto.request.CompanyCreateRequest;
 import com.orion.alnilam.dto.request.CompanyDeleteRequest;
 import com.orion.alnilam.dto.request.CompanyStatusRequest;
 import com.orion.alnilam.dto.request.CompanyUpdateRequest;
+import com.orion.alnilam.dto.response.CompanyAppSummaryResponse;
 import com.orion.alnilam.dto.response.CompanyResponse;
+import com.orion.alnilam.dto.response.CompanyUserStatusResponse;
 import com.orion.alnilam.dto.response.PagedResponse;
 import com.orion.alnilam.service.company.CompanyService;
 
@@ -49,11 +51,26 @@ public class CompanyController {
         return ResponseEntity.ok(companyService.create(request));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<CompanyResponse> get(@PathVariable Long id) {
+        return ResponseEntity.ok(companyService.getById(id));
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<CompanyResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody CompanyUpdateRequest request) {
         return ResponseEntity.ok(companyService.update(id, request));
+    }
+
+    @GetMapping("/{id}/apps")
+    public ResponseEntity<List<CompanyAppSummaryResponse>> listApps(@PathVariable Long id) {
+        return ResponseEntity.ok(companyService.listCompanyApps(id));
+    }
+
+    @GetMapping("/{id}/users")
+    public ResponseEntity<List<CompanyUserStatusResponse>> listUsers(@PathVariable Long id) {
+        return ResponseEntity.ok(companyService.listCompanyUsers(id));
     }
 
     @DeleteMapping

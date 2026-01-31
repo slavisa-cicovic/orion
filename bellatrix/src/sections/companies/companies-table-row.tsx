@@ -6,6 +6,8 @@ import TableRow from "@mui/material/TableRow";
 import Tooltip from "@mui/material/Tooltip";
 import Avatar from "@mui/material/Avatar";
 import { CompanyRow } from "@/sections/companies/types";
+import { RouterLink } from "@/routes/components";
+import { paths } from "@/routes/paths";
 
 type CompaniesTableRowProps = {
   row: CompanyRow;
@@ -46,7 +48,11 @@ export default function CompaniesTableRow({
         </Avatar>
       </TableCell>
       <TableCell>{row.code}</TableCell>
-      <TableCell>{row.name}</TableCell>
+      <TableCell>
+        <RouterLink href={paths.dashboard.companies.details(row.id)}>
+          {row.name}
+        </RouterLink>
+      </TableCell>
       <TableCell>{row.city}</TableCell>
       <TableCell>{row.zip}</TableCell>
       <TableCell>{row.active ? "Yes" : "No"}</TableCell>

@@ -39,3 +39,21 @@ export function mapCompanyDataToCreateCompanyRequest(companyData: CompanyData): 
     iconUrl: iconUrl.length > 0 ? iconUrl : null
   };
 }
+
+export function mapCompanyDataToUpdateCompanyRequest(companyData: CompanyData, reason: string) {
+  const address = companyData.address.trim();
+  const city = companyData.city.trim();
+  const zip = companyData.zip.trim();
+  const iconUrl = companyData.iconUrl.trim();
+
+  return {
+    code: companyData.code.trim(),
+    name: companyData.name.trim(),
+    reason,
+    active: companyData.active,
+    address: address.length > 0 ? address : null,
+    city: city.length > 0 ? city : null,
+    zip: zip.length > 0 ? zip : null,
+    iconUrl: iconUrl.length > 0 ? iconUrl : null
+  };
+}

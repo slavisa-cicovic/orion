@@ -48,6 +48,9 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
 
+        user.setLastLoggedInAt(Instant.now());
+        userRepository.save(user);
+
         String accessToken = jwtService.createAccessToken(user);
         JwtService.RefreshTokenPayload refreshPayload = jwtService.createRefreshTokenPayload(user);
         RefreshToken refreshToken = new RefreshToken();
@@ -76,6 +79,9 @@ public class AuthService {
         if (!user.isActive()) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User inactive");
         }
+
+        user.setLastLoggedInAt(Instant.now());
+        userRepository.save(user);
 
         current.setRevokedAt(Instant.now());
         refreshTokenRepository.save(current);
