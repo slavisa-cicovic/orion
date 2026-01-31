@@ -225,7 +225,9 @@ public class ApplicationVersionService {
         }).toList();
         accessRepository.saveAll(accesses);
         auditLogService.log("APPLICATION_VERSION", saved.getId(), "PUBLISH", request.getReason());
-        return toResponse(saved);
+        ApplicationVersion withApp = versionRepository.findByIdWithApplication(saved.getId())
+                .orElse(saved);
+        return toResponse(withApp);
     }
 
     public List<ApplicationVersionCompanyStatusResponse> listCompanyStatuses(Long versionId) {
@@ -293,6 +295,10 @@ public class ApplicationVersionService {
     }
 
     private ApplicationVersionResponse toResponse(ApplicationVersion version) {
+        int publishedCompaniesCount = Math.toIntExact(
+                accessRepository.countByApplicationVersionId(version.getId())
+        );
+        int totalCompaniesCount = Math.toIntExact(companyRepository.count());
         return new ApplicationVersionResponse(
                 version.getId(),
                 version.getApplication().getId(),
@@ -305,6 +311,8 @@ public class ApplicationVersionService {
                 version.getOriginalFileName(),
                 version.getChecksum(),
                 version.getStatus(),
+                publishedCompaniesCount,
+                totalCompaniesCount,
                 version.isActive());
     }
 

@@ -10,6 +10,8 @@ export type AppVersion = {
   originalFileName: string | null;
   checksum: string;
   status: string;
+  publishedCompaniesCount: number;
+  totalCompaniesCount: number;
   active: boolean;
 };
 

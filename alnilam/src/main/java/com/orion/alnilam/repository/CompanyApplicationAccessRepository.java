@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 public interface CompanyApplicationAccessRepository extends JpaRepository<CompanyApplicationAccess, Long> {
     List<CompanyApplicationAccess> findByApplicationVersionId(Long applicationVersionId);
+    long countByApplicationVersionId(Long applicationVersionId);
 
     @Query("""
         select access

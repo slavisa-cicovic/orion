@@ -17,6 +17,8 @@ public class ApplicationVersionResponse {
     private final String originalFileName;
     private final String checksum;
     private final ApplicationVersionStatus status;
+    private final int publishedCompaniesCount;
+    private final int totalCompaniesCount;
     private final boolean active;
 
     public ApplicationVersionResponse(
@@ -31,6 +33,8 @@ public class ApplicationVersionResponse {
         String originalFileName,
         String checksum,
         ApplicationVersionStatus status,
+        int publishedCompaniesCount,
+        int totalCompaniesCount,
         boolean active
     ) {
         this.id = id;
@@ -44,6 +48,8 @@ public class ApplicationVersionResponse {
         this.originalFileName = originalFileName;
         this.checksum = checksum;
         this.status = status;
+        this.publishedCompaniesCount = publishedCompaniesCount;
+        this.totalCompaniesCount = totalCompaniesCount;
         this.active = active;
     }
 }
