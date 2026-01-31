@@ -15,6 +15,7 @@ export type CompanyData = {
   city: string;
   zip: string;
   iconUrl: string;
+  iconFile?: File | string | null;
   active: boolean;
   reason?: string;
 };
