@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as Yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -46,8 +46,17 @@ export function UserEditForm({ currentUser }: Props) {
     lastName: Yup.string().trim().defined(),
     phone: Yup.string().trim().defined(),
     companyId: Yup.string().trim().required("Company ID is required"),
-    password: Yup.string().required("Password is required"),
-    active: Yup.boolean().required()
+    password: Yup.string().when([], {
+      is: () => Boolean(currentUser?.id),
+      then: (schema) => schema.optional(),
+      otherwise: (schema) => schema.required("Password is required")
+    }),
+    active: Yup.boolean().required(),
+    reason: Yup.string().trim().when([], {
+      is: () => Boolean(currentUser?.id),
+      then: (schema) => schema.required("Reason is required"),
+      otherwise: (schema) => schema.optional()
+    })
   });
 
   const defaultValues = useMemo<UserData>(
@@ -59,7 +68,8 @@ export function UserEditForm({ currentUser }: Props) {
       phone: currentUser?.phone ?? "",
       companyId: currentUser?.companyId != null ? String(currentUser.companyId) : "",
       password: "",
-      active: currentUser?.active ?? true
+      active: currentUser?.active ?? true,
+      reason: ""
     }),
     [currentUser]
   );
@@ -76,10 +86,18 @@ export function UserEditForm({ currentUser }: Props) {
     formState: { isSubmitting }
   } = methods;
 
+  useEffect(() => {
+    reset(defaultValues);
+  }, [defaultValues, reset]);
+
   const onSubmit = async (data: UserData) => {
     try {
       setErrorMsg("");
-      await UserApi.createUser(data);
+      if (currentUser?.id) {
+        await UserApi.updateUser(String(currentUser.id), data);
+      } else {
+        await UserApi.createUser(data);
+      }
       reset(defaultValues);
       enqueueSnackbar(currentUser?.id ? "update success" : "create_success");
       router.push(paths.dashboard.users.root);
@@ -143,6 +161,11 @@ export function UserEditForm({ currentUser }: Props) {
                 <Grid item xs={12}>
                   <RHFSwitch name="active" label="Active" />
                 </Grid>
+                {currentUser?.id && (
+                  <Grid item xs={12}>
+                    <RHFTextField name="reason" label="Reason" />
+                  </Grid>
+                )}
               </Grid>
             </CardContent>
             <CardActions sx={{ justifyContent: "flex-end", px: 3, pb: 3 }}>

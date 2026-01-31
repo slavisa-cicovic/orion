@@ -55,6 +55,8 @@ export const endpoints = {
   },
   users: {
     list: '/admin/users',
+    details: (id: string) => `/admin/users/${id}`,
+    apps: (id: string) => `/admin/users/${id}/apps`,
   },
   roles: {
     list: '/admin/roles',

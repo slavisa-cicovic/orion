@@ -35,6 +35,7 @@ export const paths = {
     },
     users: {
       root: `${ROOTS.DASHBOARD}/users`,
+      details: (id: string) => `${ROOTS.DASHBOARD}/users/${id}`,
       new: `${ROOTS.DASHBOARD}/users/new`,
     },
     devices: {

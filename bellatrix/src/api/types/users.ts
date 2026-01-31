@@ -19,6 +19,13 @@ export type UserListResponse = {
   total: number;
 };
 
+export type UserAppSummary = {
+  appId: string;
+  appName: string;
+  versionName: string;
+  status: string;
+};
+
 export type CreateUserRequest = {
   username: string;
   companyId: string;
@@ -28,4 +35,16 @@ export type CreateUserRequest = {
   phone: string | null;
   password: string;
   active: boolean;
+};
+
+export type UpdateUserRequest = {
+  username: string;
+  companyId: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  password?: string;
+  active: boolean;
+  reason: string;
 };

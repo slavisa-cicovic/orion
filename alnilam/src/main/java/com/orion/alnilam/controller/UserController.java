@@ -5,6 +5,7 @@ import com.orion.alnilam.dto.request.UserDeleteRequest;
 import com.orion.alnilam.dto.request.UserStatusRequest;
 import com.orion.alnilam.dto.request.UserUpdateRequest;
 import com.orion.alnilam.dto.response.PagedResponse;
+import com.orion.alnilam.dto.response.UserAppSummaryResponse;
 import com.orion.alnilam.dto.response.UserDeviceResponse;
 import com.orion.alnilam.dto.response.UserResponse;
 import com.orion.alnilam.service.user.UserService;
@@ -56,6 +57,11 @@ public class UserController {
         return ResponseEntity.ok(userService.update(id, request));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<UserResponse> get(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.getById(id));
+    }
+
     @DeleteMapping
     public ResponseEntity<Void> delete(@Valid @RequestBody UserDeleteRequest request) {
         userService.deleteBulk(request);
@@ -70,5 +76,10 @@ public class UserController {
     @GetMapping("/{id}/devices")
     public ResponseEntity<List<UserDeviceResponse>> devices(@PathVariable Long id) {
         return ResponseEntity.ok(userService.listDevices(id));
+    }
+
+    @GetMapping("/{id}/apps")
+    public ResponseEntity<List<UserAppSummaryResponse>> apps(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.listApps(id));
     }
 }

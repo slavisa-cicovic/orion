@@ -15,4 +15,12 @@ export type UserData = {
   companyId: string;
   password: string;
   active: boolean;
+  reason?: string;
+};
+
+export type UserAppRow = {
+  appId: string;
+  appName: string;
+  versionName: string;
+  status: string;
 };

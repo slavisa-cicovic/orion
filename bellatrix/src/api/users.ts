@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import useSWR from "swr";
 import axiosInstance, { endpoints, fetcher } from "@/utils/axios";
-import { User, UserListResponse } from "@/api/types/users";
-import { mapUsersToRows, mapUserDataToCreateUserRequest } from "@/api/mappings/users";
+import { User, UserAppSummary, UserListResponse } from "@/api/types/users";
+import { mapUsersToRows, mapUserDataToCreateUserRequest, mapUserDataToUpdateUserRequest } from "@/api/mappings/users";
 import { UserData } from "@/sections/users/types";
 
 type UsersQuery = {
@@ -44,10 +44,50 @@ export function useGetUsers(params?: UsersQuery) {
   );
 }
 
+export function useGetUser(userId: string | null) {
+  const url = userId ? endpoints.users.details(userId) : null;
+  const { data, isLoading, error, isValidating, mutate } = useSWR<User>(url, fetcher);
+
+  return useMemo(
+    () => ({
+      user: data ?? null,
+      userLoading: isLoading,
+      userError: error,
+      userValidating: isValidating,
+      mutate
+    }),
+    [data, error, isLoading, isValidating, mutate]
+  );
+}
+
+export function useGetUserApps(userId: string | null) {
+  const url = userId ? endpoints.users.apps(userId) : null;
+  const { data, isLoading, error, isValidating, mutate } = useSWR<UserAppSummary[]>(url, fetcher);
+
+  return useMemo(
+    () => ({
+      apps: data ?? [],
+      appsLoading: isLoading,
+      appsError: error,
+      appsValidating: isValidating,
+      appsEmpty: !isLoading && !data?.length,
+      mutate
+    }),
+    [data, error, isLoading, isValidating, mutate]
+  );
+}
+
 export const UserApi = {
   async createUser(userData: UserData): Promise<User> {
     const payload = mapUserDataToCreateUserRequest(userData);
     const res = await axiosInstance.post(endpoints.users.list, payload);
+
+    return res.data;
+  },
+  async updateUser(userId: string, userData: UserData): Promise<User> {
+    const reason = userData.reason ?? "";
+    const payload = mapUserDataToUpdateUserRequest(userData, reason);
+    const res = await axiosInstance.put(endpoints.users.details(userId), payload);
 
     return res.data;
   },

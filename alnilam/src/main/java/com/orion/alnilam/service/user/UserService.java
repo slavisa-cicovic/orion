@@ -1,5 +1,7 @@
 package com.orion.alnilam.service.user;
 
+import com.orion.alnilam.domain.application.ApplicationVersion;
+import com.orion.alnilam.domain.application.CompanyApplicationAccess;
 import com.orion.alnilam.domain.company.Company;
 import com.orion.alnilam.domain.enums.Role;
 import com.orion.alnilam.domain.user.User;
@@ -8,9 +10,11 @@ import com.orion.alnilam.dto.request.UserDeleteRequest;
 import com.orion.alnilam.dto.request.UserStatusRequest;
 import com.orion.alnilam.dto.request.UserUpdateRequest;
 import com.orion.alnilam.dto.response.PagedResponse;
+import com.orion.alnilam.dto.response.UserAppSummaryResponse;
 import com.orion.alnilam.dto.response.UserDeviceResponse;
 import com.orion.alnilam.dto.response.UserResponse;
 import com.orion.alnilam.repository.UserRepository;
+import com.orion.alnilam.repository.CompanyApplicationAccessRepository;
 import com.orion.alnilam.service.audit.AuditLogService;
 import java.util.HashMap;
 import java.util.Collections;
@@ -34,17 +38,20 @@ public class UserService {
     private static final String SUPER_ADMIN_EMAIL = "super.admin@example.com";
     private final CompanyRepository companyRepository;
     private final UserRepository userRepository;
+    private final CompanyApplicationAccessRepository accessRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
 
     public UserService(
         CompanyRepository companyRepository,
         UserRepository userRepository,
+        CompanyApplicationAccessRepository accessRepository,
         PasswordEncoder passwordEncoder,
         AuditLogService auditLogService
     ) {
         this.companyRepository = companyRepository;
         this.userRepository = userRepository;
+        this.accessRepository = accessRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditLogService = auditLogService;
     }
@@ -134,6 +141,42 @@ public class UserService {
         User saved = userRepository.save(user);
         auditLogService.log("USER", saved.getId(), "UPDATE", request.getReason());
         return toResponse(saved, resolveCompanyName(saved.getCompanyId()));
+    }
+
+    public UserResponse getById(Long id) {
+        User user = userRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        return toResponse(user, resolveCompanyName(user.getCompanyId()));
+    }
+
+    public List<UserAppSummaryResponse> listApps(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        Long companyId = user.getCompanyId();
+        if (companyId == null) {
+            return List.of();
+        }
+
+        List<CompanyApplicationAccess> accesses = accessRepository.findByCompanyIdWithApplication(companyId);
+        Map<Long, ApplicationVersion> latestByApp = new HashMap<>();
+
+        for (CompanyApplicationAccess access : accesses) {
+            ApplicationVersion version = access.getApplicationVersion();
+            Long appId = version.getApplication().getId();
+            ApplicationVersion existing = latestByApp.get(appId);
+            if (existing == null || compareVersionName(version.getVersionName(), existing.getVersionName()) > 0) {
+                latestByApp.put(appId, version);
+            }
+        }
+
+        return latestByApp.values().stream()
+            .map(version -> new UserAppSummaryResponse(
+                version.getApplication().getId(),
+                version.getApplication().getDisplayName(),
+                version.getVersionName(),
+                "PUBLISHED_TO_COMPANY"
+            ))
+            .toList();
     }
 
     public void deleteBulk(UserDeleteRequest request) {
@@ -333,5 +376,41 @@ public class UserService {
             return false;
         }
         return value.toLowerCase().contains(needle);
+    }
+
+    private int compareVersionName(String left, String right) {
+        if (!StringUtils.hasText(left) || !StringUtils.hasText(right)) {
+            return 0;
+        }
+        String[] leftParts = left.split("\\.");
+        String[] rightParts = right.split("\\.");
+        boolean numericOnly = true;
+        for (String part : leftParts) {
+            if (!part.matches("\\d+")) {
+                numericOnly = false;
+                break;
+            }
+        }
+        if (numericOnly) {
+            for (String part : rightParts) {
+                if (!part.matches("\\d+")) {
+                    numericOnly = false;
+                    break;
+                }
+            }
+        }
+
+        if (numericOnly) {
+            int max = Math.max(leftParts.length, rightParts.length);
+            for (int i = 0; i < max; i++) {
+                int l = i < leftParts.length ? Integer.parseInt(leftParts[i]) : 0;
+                int r = i < rightParts.length ? Integer.parseInt(rightParts[i]) : 0;
+                if (l != r) {
+                    return Integer.compare(l, r);
+                }
+            }
+            return 0;
+        }
+        return left.compareToIgnoreCase(right);
     }
 }
