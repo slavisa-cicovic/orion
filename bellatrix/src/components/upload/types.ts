@@ -15,6 +15,7 @@ export interface UploadProps extends DropzoneOptions {
   sx?: SxProps<Theme>;
   placeholder?: React.ReactNode;
   helperText?: React.ReactNode;
+  originalFileName?: string | null;
   //
   file?: CustomFile | string | null;
   onDelete?: VoidFunction;

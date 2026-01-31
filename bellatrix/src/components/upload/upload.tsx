@@ -21,6 +21,7 @@ export default function Upload({
   helperText,
   //
   file,
+  originalFileName,
   onDelete,
   sx,
   ...other
@@ -56,7 +57,9 @@ export default function Upload({
     </Stack>
   );
 
-  const renderSinglePreview = <SingleFilePreview file={file ?? null} />;
+  const renderSinglePreview = (
+    <SingleFilePreview file={file ?? null} originalFileName={originalFileName} />
+  );
 
   const removeSinglePreview = hasFile && onDelete && (
     <IconButton

@@ -12,6 +12,7 @@ import Image from '../image';
 
 type Props = {
   imgUrl?: string;
+  originalFileName?: string | null;
   file?: File | string | null;
 };
 
@@ -38,15 +39,12 @@ function isImage(file?: File | string | null, imgUrl?: string) {
   return !!imgUrl && IMAGE_EXTS.some((e) => imgUrl.toLowerCase().includes(`.${e}`));
 }
 
-export default function SingleFilePreview({ imgUrl = '', file = null }: Props) {
-  const name = getName(file);
+export default function SingleFilePreview({ imgUrl = '', originalFileName = null, file = null }: Props) {
+  const name = originalFileName || getName(file);
   const ext = getExt(name);
   const size = file && typeof file !== 'string' ? file.size : 0;
 
-  const src =
-    imgUrl ||
-    (typeof file === 'string' ? file : file?.preview) ||
-    '';
+  const src = imgUrl || (typeof file === 'string' ? file : '') || '';
 
   const showImage = isImage(file, imgUrl) && !!src;
 

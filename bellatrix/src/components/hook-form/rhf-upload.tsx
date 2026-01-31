@@ -43,8 +43,8 @@ export function RHFUploadBox({ name, ...other }: Props) {
     <Controller
       name={name}
       control={control}
-      render={({ field, fieldState: { error } }) => (
-        <UploadBox files={field.value} error={!!error} {...other} />
+      render={({ field: _field, fieldState: { error } }) => (
+        <UploadBox error={!!error} {...other} />
       )}
     />
   );

@@ -256,6 +256,7 @@ export default function AppVersionEditForm({
                   <RHFUpload
                     name="fileRef"
                     maxSize={FILE_MAX_SIZE}
+                    originalFileName={originalFileName}
                     accept={
                       platform === "ANDROID"
                         ? { "application/vnd.android.package-archive": [".apk"] }
