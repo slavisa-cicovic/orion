@@ -3,6 +3,7 @@ package com.orion.alnilam.service.application;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.http.HttpStatus;
@@ -13,6 +14,7 @@ import com.orion.alnilam.domain.application.Application;
 import com.orion.alnilam.domain.application.ApplicationVersion;
 import com.orion.alnilam.domain.application.CompanyApplicationAccess;
 import com.orion.alnilam.domain.enums.ApplicationVersionStatus;
+import com.orion.alnilam.domain.enums.Platform;
 import com.orion.alnilam.domain.company.Company;
 import com.orion.alnilam.dto.request.ApplicationVersionCreateRequest;
 import com.orion.alnilam.dto.request.ApplicationVersionDeleteRequest;
@@ -26,6 +28,7 @@ import com.orion.alnilam.repository.ApplicationVersionRepository;
 import com.orion.alnilam.repository.CompanyApplicationAccessRepository;
 import com.orion.alnilam.repository.CompanyRepository;
 import com.orion.alnilam.service.audit.AuditLogService;
+import org.springframework.util.StringUtils;
 import java.util.Objects;
 
 @Service
@@ -65,17 +68,30 @@ public class ApplicationVersionService {
         Application app = applicationRepository.findById(request.getApplicationId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Application not found"));
 
-        if (versionRepository.existsByApplicationIdAndPlatformAndVersionCode(
+        if (!StringUtils.hasText(request.getFileUrl())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File is required");
+        }
+        if (!isValidVersionName(request.getVersionName())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Version name must be in format x.y.z");
+        }
+
+        if (versionRepository.existsByApplicationIdAndPlatformAndVersionName(
                 app.getId(),
                 request.getPlatform(),
-                request.getVersionCode())) {
+                request.getVersionName())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Version already exists");
         }
+
+        findLatestByVersionName(app.getId(), request.getPlatform())
+                .ifPresent(latest -> {
+                    if (compareVersionName(request.getVersionName(), latest.getVersionName()) <= 0) {
+                        throw new ResponseStatusException(HttpStatus.CONFLICT, "Version name must be greater than latest");
+                    }
+                });
 
         ApplicationVersion version = new ApplicationVersion();
         version.setApplication(app);
         version.setVersionName(request.getVersionName());
-        version.setVersionCode(request.getVersionCode());
         version.setPlatform(request.getPlatform());
         version.setMinSdk(request.getMinSdk());
         version.setTargetSdk(request.getTargetSdk());
@@ -92,7 +108,10 @@ public class ApplicationVersionService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Version not found"));
 
         Application application = version.getApplication();
-        ApplicationVersion latest = versionRepository.findTopByApplicationOrderByVersionCodeDesc(application)
+        if (!isValidVersionName(request.getVersionName())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Version name must be in format x.y.z");
+        }
+        ApplicationVersion latest = findLatestByVersionName(application.getId(), request.getPlatform())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Latest version not found"));
         if (!latest.getId().equals(version.getId())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Only the latest version can be updated");
@@ -100,7 +119,6 @@ public class ApplicationVersionService {
 
         boolean publishedToAnyCompany = !accessRepository.findByApplicationVersionId(version.getId()).isEmpty();
         boolean versionChanged = !Objects.equals(version.getVersionName(), request.getVersionName())
-                || !Objects.equals(version.getVersionCode(), request.getVersionCode())
                 || version.getPlatform() != request.getPlatform();
         boolean fileChanged = !Objects.equals(version.getFileUrl(), request.getFileUrl())
                 || !Objects.equals(version.getOriginalFileName(), request.getOriginalFileName())
@@ -109,22 +127,21 @@ public class ApplicationVersionService {
         if (publishedToAnyCompany && (versionChanged || fileChanged)) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Published version cannot change name, code, platform, file, or checksum"
+                    "Published version cannot change name, platform, file, or checksum"
             );
         }
 
-        if (!version.getVersionCode().equals(request.getVersionCode())
+        if (!version.getVersionName().equals(request.getVersionName())
                 || version.getPlatform() != request.getPlatform()) {
-            if (versionRepository.existsByApplicationIdAndPlatformAndVersionCode(
+            if (versionRepository.existsByApplicationIdAndPlatformAndVersionName(
                     application.getId(),
                     request.getPlatform(),
-                    request.getVersionCode())) {
+                    request.getVersionName())) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Version already exists");
             }
         }
 
         version.setVersionName(request.getVersionName());
-        version.setVersionCode(request.getVersionCode());
         version.setPlatform(request.getPlatform());
         version.setMinSdk(request.getMinSdk());
         version.setTargetSdk(request.getTargetSdk());
@@ -174,7 +191,7 @@ public class ApplicationVersionService {
                 version.getApplication().getId()
         );
         Set<Long> alreadyPublished = new HashSet<>();
-        HashMap<Long, Integer> latestByCompany = new HashMap<>();
+        HashMap<Long, String> latestByCompany = new HashMap<>();
         for (CompanyApplicationAccess access : allAccesses) {
             ApplicationVersion accessVersion = access.getApplicationVersion();
             if (accessVersion.getPlatform() != version.getPlatform()) {
@@ -184,9 +201,9 @@ public class ApplicationVersionService {
             if (accessVersion.getId().equals(version.getId())) {
                 alreadyPublished.add(companyId);
             }
-            Integer existing = latestByCompany.get(companyId);
-            if (existing == null || accessVersion.getVersionCode() > existing) {
-                latestByCompany.put(companyId, accessVersion.getVersionCode());
+            String existing = latestByCompany.get(companyId);
+            if (existing == null || compareVersionName(accessVersion.getVersionName(), existing) > 0) {
+                latestByCompany.put(companyId, accessVersion.getVersionName());
             }
         }
 
@@ -194,8 +211,8 @@ public class ApplicationVersionService {
             if (alreadyPublished.contains(companyId)) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Version already published to company");
             }
-            Integer latestVersion = latestByCompany.get(companyId);
-            if (latestVersion != null && version.getVersionCode() <= latestVersion) {
+            String latestVersion = latestByCompany.get(companyId);
+            if (latestVersion != null && compareVersionName(version.getVersionName(), latestVersion) <= 0) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Only newer versions can be published");
             }
         }
@@ -216,7 +233,6 @@ public class ApplicationVersionService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Version not found"));
 
         Long applicationId = version.getApplication().getId();
-        int versionCode = version.getVersionCode();
 
         List<CompanyApplicationAccess> allAccesses = accessRepository.findByApplicationId(applicationId);
         List<CompanyApplicationAccess> versionAccesses = accessRepository.findByApplicationVersionId(versionId);
@@ -235,8 +251,8 @@ public class ApplicationVersionService {
             Long companyId = access.getCompanyId();
             CompanyApplicationAccess existing = latestAccessByCompany.get(companyId);
             if (existing == null
-                    || accessVersion.getVersionCode()
-                    > existing.getApplicationVersion().getVersionCode()) {
+                    || compareVersionName(accessVersion.getVersionName(),
+                    existing.getApplicationVersion().getVersionName()) > 0) {
                 latestAccessByCompany.put(companyId, access);
             }
         }
@@ -244,7 +260,6 @@ public class ApplicationVersionService {
         List<Company> companies = companyRepository.findAll();
         return companies.stream().map(company -> {
             CompanyApplicationAccess latestAccess = latestAccessByCompany.get(company.getId());
-            Integer latestCode = latestAccess != null ? latestAccess.getApplicationVersion().getVersionCode() : null;
             String latestName = latestAccess != null ? latestAccess.getApplicationVersion().getVersionName() : null;
             boolean publishedToCompany = publishedCompanyIds.contains(company.getId());
             boolean selectable;
@@ -253,7 +268,7 @@ public class ApplicationVersionService {
             if (publishedToCompany) {
                 selectable = false;
                 selectableReason = "Already published";
-            } else if (latestCode != null && versionCode <= latestCode) {
+            } else if (latestName != null && compareVersionName(version.getVersionName(), latestName) <= 0) {
                 selectable = false;
                 selectableReason = "Older than latest published version";
             } else {
@@ -268,7 +283,6 @@ public class ApplicationVersionService {
                     company.getAddress(),
                     company.getCity(),
                     company.getZip(),
-                    latestCode,
                     latestName,
                     publishedToCompany,
                     publishedToUsers,
@@ -284,7 +298,6 @@ public class ApplicationVersionService {
                 version.getApplication().getId(),
                 version.getApplication().getDisplayName(),
                 version.getVersionName(),
-                version.getVersionCode(),
                 version.getPlatform(),
                 version.getMinSdk(),
                 version.getTargetSdk(),
@@ -293,5 +306,65 @@ public class ApplicationVersionService {
                 version.getChecksum(),
                 version.getStatus(),
                 version.isActive());
+    }
+
+    private Optional<ApplicationVersion> findLatestByVersionName(Long applicationId, Platform platform) {
+        List<ApplicationVersion> versions = versionRepository.findByApplicationIdWithApplication(applicationId).stream()
+                .filter(version -> version.getPlatform() == platform)
+                .toList();
+        if (versions.isEmpty()) {
+            return Optional.empty();
+        }
+        ApplicationVersion latest = versions.get(0);
+        for (ApplicationVersion version : versions) {
+            if (compareVersionName(version.getVersionName(), latest.getVersionName()) > 0) {
+                latest = version;
+            }
+        }
+        return Optional.of(latest);
+    }
+
+    private int compareVersionName(String left, String right) {
+        if (!StringUtils.hasText(left) || !StringUtils.hasText(right)) {
+            return 0;
+        }
+        String[] leftParts = left.split("\\.");
+        String[] rightParts = right.split("\\.");
+        boolean numericOnly = true;
+        for (String part : leftParts) {
+            if (!part.matches("\\d+")) {
+                numericOnly = false;
+                break;
+            }
+        }
+        if (numericOnly) {
+            for (String part : rightParts) {
+                if (!part.matches("\\d+")) {
+                    numericOnly = false;
+                    break;
+                }
+            }
+        }
+
+        if (numericOnly) {
+            int max = Math.max(leftParts.length, rightParts.length);
+            for (int i = 0; i < max; i++) {
+                int l = i < leftParts.length ? Integer.parseInt(leftParts[i]) : 0;
+                int r = i < rightParts.length ? Integer.parseInt(rightParts[i]) : 0;
+                if (l != r) {
+                    return Integer.compare(l, r);
+                }
+            }
+            return 0;
+        }
+
+        return left.compareToIgnoreCase(right);
+    }
+
+    private boolean isValidVersionName(String value) {
+        if (!StringUtils.hasText(value)) {
+            return false;
+        }
+        return value.matches("^[1-9]\\d*\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$");
     }
 }

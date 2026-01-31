@@ -29,16 +29,6 @@ export default function AppVersionCreateView({ appId }: Props) {
           ]}
           sx={{ mb: { xs: 3, md: 5 } }}
         />
-        <CustomBreadcrumbs
-          heading="Create new app"
-          description="create.description"
-          links={[
-            { name: "Overview", href: paths.dashboard.root },
-            { name: "Applications", href: paths.dashboard.apps.root },
-            { name: "new" }
-          ]}
-          sx={{ mb: { xs: 3, md: 5 } }}
-        />
         <Box
           sx={{
             display: { xs: "flex", md: "grid" },

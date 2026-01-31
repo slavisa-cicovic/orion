@@ -22,7 +22,6 @@ import AppVersionsTableRow from "@/sections/app-versions/app-versions-table-row"
 
 const TABLE_HEAD = [
   { id: "versionName", label: "Version", minWidth: 140 },
-  { id: "versionCode", label: "Code", width: 90 },
   { id: "platform", label: "Platform", width: 120 },
   { id: "status", label: "Status", minWidth: 140 }
 ];
@@ -35,7 +34,7 @@ type Props = {
 };
 
 export default function AppVersionsTable({ appId, rows, loading, empty }: Props) {
-  const table = useTable({ defaultOrderBy: "versionCode", defaultRowsPerPage: 25, defaultDense: true });
+  const table = useTable({ defaultOrderBy: "versionName", defaultOrder: "desc", defaultRowsPerPage: 25, defaultDense: true });
 
   const dataSorted = useMemo(
     () => rows.slice().sort(getComparator(table.order, table.orderBy)),

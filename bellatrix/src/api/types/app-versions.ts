@@ -3,7 +3,6 @@ export type AppVersion = {
   applicationId: string;
   applicationName: string | null;
   versionName: string;
-  versionCode: number;
   platform: "ANDROID" | "IOS";
   minSdk: number | null;
   targetSdk: number | null;
@@ -19,7 +18,6 @@ export type AppVersionListResponse = AppVersion[];
 export type CreateAppVersionRequest = {
   applicationId: number;
   versionName: string;
-  versionCode: number;
   platform: "ANDROID" | "IOS";
   minSdk?: number | null;
   targetSdk?: number | null;
@@ -31,7 +29,6 @@ export type CreateAppVersionRequest = {
 
 export type UpdateAppVersionRequest = {
   versionName: string;
-  versionCode: number;
   platform: "ANDROID" | "IOS";
   minSdk?: number | null;
   targetSdk?: number | null;
@@ -53,7 +50,6 @@ export type AppVersionCompanyStatus = {
   address: string | null;
   city: string | null;
   zip: string | null;
-  latestPublishedVersionCode: number | null;
   latestPublishedVersionName: string | null;
   publishedToCompany: boolean;
   publishedToUsers: boolean;

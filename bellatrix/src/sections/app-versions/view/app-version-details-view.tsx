@@ -59,6 +59,31 @@ export default function AppVersionDetailsView({ appVersionId }: Props) {
     [companies]
   );
 
+  const compareVersionName = useCallback((left: string, right: string) => {
+    const leftParts = left.split(".");
+    const rightParts = right.split(".");
+    const numericOnly = [...leftParts, ...rightParts].every((part) => /^\d+$/.test(part));
+    if (numericOnly) {
+      const max = Math.max(leftParts.length, rightParts.length);
+      for (let i = 0; i < max; i += 1) {
+        const l = Number(leftParts[i] ?? 0);
+        const r = Number(rightParts[i] ?? 0);
+        if (l !== r) return l - r;
+      }
+      return 0;
+    }
+    return left.localeCompare(right, undefined, { sensitivity: "base" });
+  }, []);
+
+  const isLatest = useMemo(() => {
+    if (!appVersion) return true;
+    if (!versions.length) return true;
+    const latest = versions.reduce((acc, v) =>
+      compareVersionName(v.versionName, acc.versionName) > 0 ? v : acc
+    , versions[0]);
+    return latest.versionName === appVersion.versionName;
+  }, [appVersion, compareVersionName, versions]);
+
   const openConfirm = useCallback(() => {
     setConfirmOpen(true);
     setConfirmReason("");
@@ -113,11 +138,7 @@ export default function AppVersionDetailsView({ appVersionId }: Props) {
               <AppVersionEditForm
                 appId={appVersion.applicationId}
                 currentAppVersion={appVersion}
-                isLatest={
-                  versions.length
-                    ? Math.max(...versions.map((v) => v.versionCode)) === appVersion.versionCode
-                    : true
-                }
+                isLatest={isLatest}
                 publishedToCompany={
                   appVersion.status === "PUBLISHED_TO_COMPANIES" ||
                   appVersion.status === "PUBLISHED_TO_USERS"
@@ -167,9 +188,7 @@ export default function AppVersionDetailsView({ appVersionId }: Props) {
                       />
                       <TableBody>
                         {companies.map((row) => {
-                          const latestLabel = row.latestPublishedVersionName
-                            ? `${row.latestPublishedVersionName} (${row.latestPublishedVersionCode ?? "-"})`
-                            : "-";
+                          const latestLabel = row.latestPublishedVersionName ?? "-";
                           const address = [row.address, row.city, row.zip].filter(Boolean).join(", ") || "-";
                           const isSelected = table.selected.includes(row.companyId);
                           return (

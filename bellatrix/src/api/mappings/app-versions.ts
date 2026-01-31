@@ -6,7 +6,6 @@ export function mapAppVersionToRow(version: AppVersion): AppVersionRow {
     id: version.id,
     appName: version.applicationName ?? "-",
     versionName: version.versionName,
-    versionCode: version.versionCode,
     platform: version.platform,
     status: version.status,
     active: version.active

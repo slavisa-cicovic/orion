@@ -1,6 +1,5 @@
 package com.orion.alnilam.repository;
 
-import com.orion.alnilam.domain.application.Application;
 import com.orion.alnilam.domain.application.ApplicationVersion;
 import com.orion.alnilam.domain.enums.ApplicationVersionStatus;
 import com.orion.alnilam.domain.enums.Platform;
@@ -12,8 +11,7 @@ import org.springframework.data.repository.query.Param;
 
 public interface ApplicationVersionRepository extends JpaRepository<ApplicationVersion, Long> {
     List<ApplicationVersion> findByApplicationId(Long applicationId);
-    Optional<ApplicationVersion> findTopByApplicationOrderByVersionCodeDesc(Application application);
-    boolean existsByApplicationIdAndPlatformAndVersionCode(Long applicationId, Platform platform, Integer versionCode);
+    boolean existsByApplicationIdAndPlatformAndVersionName(Long applicationId, Platform platform, String versionName);
     boolean existsByApplicationIdAndStatus(Long applicationId, ApplicationVersionStatus status);
 
     @Query("""

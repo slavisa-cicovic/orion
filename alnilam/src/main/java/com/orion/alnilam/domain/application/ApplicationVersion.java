@@ -37,9 +37,6 @@ public class ApplicationVersion {
     @Column(name = "version_name", nullable = false)
     private String versionName;
 
-    @Column(name = "version_code", nullable = false)
-    private Integer versionCode;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Platform platform;

@@ -6,7 +6,6 @@ public record ApplicationVersionCompanyStatusResponse(
     String address,
     String city,
     String zip,
-    Integer latestPublishedVersionCode,
     String latestPublishedVersionName,
     boolean publishedToCompany,
     boolean publishedToUsers,

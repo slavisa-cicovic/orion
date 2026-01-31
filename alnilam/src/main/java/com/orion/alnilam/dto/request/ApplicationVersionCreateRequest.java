@@ -16,9 +16,6 @@ public class ApplicationVersionCreateRequest {
     private String versionName;
 
     @NotNull
-    private Integer versionCode;
-
-    @NotNull
     private Platform platform;
 
     private Integer minSdk;

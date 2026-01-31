@@ -10,7 +10,6 @@ public class ApplicationVersionResponse {
     private final Long applicationId;
     private final String applicationName;
     private final String versionName;
-    private final Integer versionCode;
     private final Platform platform;
     private final Integer minSdk;
     private final Integer targetSdk;
@@ -25,7 +24,6 @@ public class ApplicationVersionResponse {
         Long applicationId,
         String applicationName,
         String versionName,
-        Integer versionCode,
         Platform platform,
         Integer minSdk,
         Integer targetSdk,
@@ -39,7 +37,6 @@ public class ApplicationVersionResponse {
         this.applicationId = applicationId;
         this.applicationName = applicationName;
         this.versionName = versionName;
-        this.versionCode = versionCode;
         this.platform = platform;
         this.minSdk = minSdk;
         this.targetSdk = targetSdk;

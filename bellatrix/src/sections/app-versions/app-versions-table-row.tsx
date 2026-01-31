@@ -17,7 +17,6 @@ export default function AppVersionsTableRow({ appId, row }: Props) {
       <TableCell>
         <RouterLink href={paths.dashboard.apps.versionDetails(appId, row.id)}>{row.versionName}</RouterLink>
       </TableCell>
-      <TableCell>{row.versionCode}</TableCell>
       <TableCell>{row.platform}</TableCell>
       <TableCell>{row.status}</TableCell>
     </TableRow>
