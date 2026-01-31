@@ -151,7 +151,9 @@ public class ApplicationVersionService {
         version.setActive(request.isActive());
         ApplicationVersion saved = versionRepository.save(version);
         auditLogService.log("APPLICATION_VERSION", saved.getId(), "UPDATE", request.getReason());
-        return toResponse(saved);
+        ApplicationVersion withApp = versionRepository.findByIdWithApplication(saved.getId())
+                .orElse(saved);
+        return toResponse(withApp);
     }
 
     public void deleteBulk(ApplicationVersionDeleteRequest request) {
