@@ -6,11 +6,12 @@ import Iconify from "./iconify";
 import Image from "./image";
 
 type FileLike = File | string;
+type FileWithPreview = File & { preview?: string };
 
 export function fileData(file: FileLike) {
   const isString = typeof file === "string";
-  const name = isString ? (file.split("/").pop() ?? file) : file.name ?? file.path ?? "file";
-  const path = isString ? file : file.path ?? name;
+  const name = isString ? (file.split("/").pop() ?? file) : file.name ?? "file";
+  const path = isString ? file : name;
   const size = isString ? 0 : file.size ?? 0;
   const key = isString ? file : `${file.name}-${file.size}-${file.lastModified}`;
 
@@ -44,7 +45,9 @@ export default function FileThumbnail({ file, imageView, tooltip, sx, imgSx }: P
   const showImage = imageView && isImageFile(file, name);
 
   const src =
-    typeof file === "string" ? file : file.preview ?? URL.createObjectURL(file);
+    typeof file === "string"
+      ? file
+      : ((file as FileWithPreview).preview ?? URL.createObjectURL(file));
 
   const content = showImage ? (
     <Image alt={name} src={src} sx={{ borderRadius: 1, ...imgSx }} />
