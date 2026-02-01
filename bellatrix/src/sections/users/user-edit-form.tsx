@@ -39,7 +39,7 @@ export function UserEditForm({ currentUser }: Props) {
     return companyLabelById.get(companyId) ?? companyId;
   };
 
-  const UserSchema: Yup.ObjectSchema<UserData> = Yup.object({
+  const UserSchema = Yup.object({
     username: Yup.string().trim().required("Username is required"),
     email: Yup.string().trim().email("Invalid email").required("Email is required"),
     firstName: Yup.string().trim().defined(),
@@ -57,7 +57,7 @@ export function UserEditForm({ currentUser }: Props) {
       then: (schema) => schema.required("Reason is required"),
       otherwise: (schema) => schema.optional()
     })
-  });
+  }) as Yup.ObjectSchema<UserData>;
 
   const defaultValues = useMemo<UserData>(
     () => ({
@@ -119,7 +119,7 @@ export function UserEditForm({ currentUser }: Props) {
   return (
     <FormProvider methods={methods} onSubmit={handleSubmit(onSubmit)}>
       <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
+        <Grid item xs={12} >
           <Card>
             <CardHeader title={currentUser ? "Edit user" : "Create user"} />
             <CardContent>

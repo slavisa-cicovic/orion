@@ -31,7 +31,7 @@ export function CompanyEditForm({ currentCompany }: Props) {
 
   const ICON_MAX_SIZE = 300 * 1024;
 
-  const CompanySchema: Yup.ObjectSchema<CompanyData> = Yup.object({
+  const CompanySchema = Yup.object({
     code: Yup.string().trim().required("Code is required"),
     name: Yup.string().trim().required("Name is required"),
     address: Yup.string().trim().defined(),
@@ -45,7 +45,7 @@ export function CompanyEditForm({ currentCompany }: Props) {
       then: (schema) => schema.required("Reason is required"),
       otherwise: (schema) => schema.optional()
     })
-  });
+  }) as Yup.ObjectSchema<CompanyData>;
 
   const iconPreviewUrl = useMemo(() => {
     if (!currentCompany?.iconUrl) return null;
@@ -121,7 +121,7 @@ export function CompanyEditForm({ currentCompany }: Props) {
   return (
     <FormProvider methods={methods} onSubmit={handleSubmit(onSubmit)}>
       <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
+        <Grid item xs={12}>
           <Card>
             <CardHeader title={currentCompany ? "Edit company" : "Create company"} />
             <CardContent>
