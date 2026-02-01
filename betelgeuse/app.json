@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "Betelgeuse",
+    "slug": "betelgeuse",
+    "version": "0.1.0",
+    "scheme": "betelgeuse",
+    "orientation": "portrait",
+    "platforms": ["ios", "android", "web"],
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {}
+  }
+}
