@@ -1,26 +1,28 @@
-import axios, { AxiosHeaders, AxiosRequestConfig } from 'axios';
-import { getAuthToken } from '@/auth/auth-token';
+import axios, { AxiosHeaders, AxiosRequestConfig } from "axios";
+import { getAuthToken } from "@/auth/auth-token";
 // config
 
 // ----------------------------------------------------------------------
 
-const axiosInstance = axios.create({ baseURL: process.env.NEXT_PUBLIC_HOST_API });
+const axiosInstance = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_HOST_API,
+});
 
-axiosInstance.interceptors.request.use((config) => {
+axiosInstance.interceptors.request.use(config => {
   const token = getAuthToken();
   if (token) {
     if (!config.headers) {
       config.headers = new AxiosHeaders();
     }
     if (config.headers instanceof AxiosHeaders) {
-      config.headers.set('Authorization', `Bearer ${token}`);
+      config.headers.set("Authorization", `Bearer ${token}`);
     } else {
-      (config.headers as Record<string, string>).Authorization = `Bearer ${token}`;
+      (config.headers as Record<string, string>).Authorization =
+        `Bearer ${token}`;
     }
   }
   return config;
 });
-
 
 export default axiosInstance;
 
@@ -38,7 +40,7 @@ export const fetcher = async (args: string | [string, AxiosRequestConfig]) => {
 
 export const endpoints = {
   apps: {
-    list: '/admin/applications',
+    list: "/admin/applications",
     details: (id: string) => `/admin/applications/${id}`,
   },
   appVersions: {
@@ -48,30 +50,20 @@ export const endpoints = {
     companies: (id: string) => `/admin/app-versions/${id}/companies`,
   },
   companies: {
-    list: '/admin/companies',
+    list: "/admin/companies",
     details: (id: string) => `/admin/companies/${id}`,
     apps: (id: string) => `/admin/companies/${id}/apps`,
     users: (id: string) => `/admin/companies/${id}/users`,
   },
   users: {
-    list: '/admin/users',
+    list: "/admin/users",
     details: (id: string) => `/admin/users/${id}`,
     apps: (id: string) => `/admin/users/${id}/apps`,
   },
-  roles: {
-    list: '/admin/roles',
-  },
-  permissions: {
-    list: '/admin/permissions',
-  },
   devices: {
-    list: '/user/devices',
-  },
-  installations: {
-    list: '/user/installations',
+    list: "/user/devices",
   },
   uploads: {
-    list: '/admin/uploads',
+    list: "/admin/uploads",
   },
-  // TODO for other domains
 };
