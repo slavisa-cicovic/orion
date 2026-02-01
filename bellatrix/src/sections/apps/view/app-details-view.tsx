@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Stack, Card, CardContent, CardHeader, Button } from "@mui/material";
+import { Box, Stack, Card, CardContent, CardHeader, Button, Alert } from "@mui/material";
 import MainLayout from "@/layouts/main/MainLayout";
 import CustomBreadcrumbs from "@/components/custom-breadcrumbs";
 import { paths } from "@/routes/paths";
@@ -15,7 +15,7 @@ type Props = {
 };
 
 export default function AppDetailsView({ appId }: Props) {
-  const { app } = useGetApp(appId);
+  const { app, appError } = useGetApp(appId);
   const {
     versionRows,
     versionsLoading,
@@ -44,6 +44,7 @@ export default function AppDetailsView({ appId }: Props) {
           }}
         >
           <Box>
+            {appError && <Alert severity="error">Failed to load company data.</Alert>}
             <AppEditForm currentApp={app ?? undefined} />
           </Box>
           <Box>
