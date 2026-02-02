@@ -18,9 +18,29 @@ type ForgotPasswordPayload = {
   email: string;
 };
 
-type LoginResponse = {
+export type LoginResponse = {
   accessToken: string;
   refreshToken: string;
+};
+
+export type ProfileResponse = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string | null;
+};
+
+export type UpdateProfilePayload = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+};
+
+export type ChangePasswordPayload = {
+  currentPassword: string;
+  newPassword: string;
 };
 
 export async function login(payload: LoginPayload): Promise<LoginResponse> {
@@ -39,6 +59,24 @@ export async function forgotPassword(
   payload: ForgotPasswordPayload,
 ): Promise<void> {
   await axiosInstance.post("/auth/forgot-password", payload);
+}
+
+export async function getMyProfile(): Promise<ProfileResponse> {
+  const res = await axiosInstance.get<ProfileResponse>("/auth/me");
+  return res.data;
+}
+
+export async function updateMyProfile(
+  payload: UpdateProfilePayload,
+): Promise<ProfileResponse> {
+  const res = await axiosInstance.put<ProfileResponse>("/auth/me", payload);
+  return res.data;
+}
+
+export async function changeMyPassword(
+  payload: ChangePasswordPayload,
+): Promise<void> {
+  await axiosInstance.post("/auth/change-password", payload);
 }
 
 function resolveLoginPayload(payload: LoginPayload): LoginPayload {
