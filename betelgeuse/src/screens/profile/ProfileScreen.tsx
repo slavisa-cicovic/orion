@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   changeMyPassword,
   getMyProfile,
@@ -42,33 +43,31 @@ export default function ProfileScreen() {
     confirmPassword: "",
   });
 
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        setLoading(true);
-        setProfileError(null);
-        const profile = await getMyProfile();
-        setProfileForm({
-          firstName: profile.firstName ?? "",
-          lastName: profile.lastName ?? "",
-          email: profile.email ?? "",
-          phone: profile.phone ?? "",
-        });
-        setInitialProfileForm({
-          firstName: profile.firstName ?? "",
-          lastName: profile.lastName ?? "",
-          email: profile.email ?? "",
-          phone: profile.phone ?? "",
-        });
-      } catch (err) {
-        setProfileError(getApiErrorMessage(err, "Failed to load profile"));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void loadProfile();
+  const loadProfile = useCallback(async () => {
+    try {
+      setLoading(true);
+      setProfileError(null);
+      const profile = await getMyProfile();
+      const normalized = {
+        firstName: profile.firstName ?? "",
+        lastName: profile.lastName ?? "",
+        email: profile.email ?? "",
+        phone: profile.phone ?? "",
+      };
+      setProfileForm(normalized);
+      setInitialProfileForm(normalized);
+    } catch (err) {
+      setProfileError(getApiErrorMessage(err, "Failed to load profile"));
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadProfile();
+    }, [loadProfile]),
+  );
 
   const profileValidationError = useMemo(() => {
     if (!profileForm.firstName.trim()) return "First name is required";
