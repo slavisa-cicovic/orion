@@ -1,6 +1,9 @@
 package com.orion.alnilam.service.auth;
 
+import com.orion.alnilam.dto.request.ChangePasswordRequest;
 import com.orion.alnilam.dto.request.LoginRequest;
+import com.orion.alnilam.dto.request.UpdateMyProfileRequest;
+import com.orion.alnilam.dto.response.MyProfileResponse;
 import com.orion.alnilam.dto.response.LoginResponse;
 import com.orion.alnilam.dto.request.RefreshRequest;
 import com.orion.alnilam.dto.response.RefreshResponse;
@@ -10,6 +13,7 @@ import com.orion.alnilam.domain.user.User;
 import com.orion.alnilam.repository.RefreshTokenRepository;
 import com.orion.alnilam.repository.UserRepository;
 import java.time.Instant;
+import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -62,6 +66,46 @@ public class AuthService {
         return new LoginResponse(accessToken, refreshPayload.token());
     }
 
+    @Transactional(readOnly = true)
+    public MyProfileResponse getMyProfile(Authentication authentication) {
+        User user = getAuthenticatedUser(authentication);
+        return toMyProfileResponse(user);
+    }
+
+    @Transactional
+    public MyProfileResponse updateMyProfile(Authentication authentication, UpdateMyProfileRequest request) {
+        User user = getAuthenticatedUser(authentication);
+
+        String normalizedEmail = request.getEmail().trim();
+        if (userRepository.existsByEmailIgnoreCaseAndIdNot(normalizedEmail, user.getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email already in use");
+        }
+
+        user.setFirstName(request.getFirstName().trim());
+        user.setLastName(request.getLastName().trim());
+        user.setEmail(normalizedEmail);
+        user.setPhone(request.getPhone() == null ? null : request.getPhone().trim());
+        userRepository.save(user);
+
+        return toMyProfileResponse(user);
+    }
+
+    @Transactional
+    public void changePassword(Authentication authentication, ChangePasswordRequest request) {
+        User user = getAuthenticatedUser(authentication);
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Current password is invalid");
+        }
+
+        if (request.getNewPassword().length() < 8) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "New password must be at least 8 characters");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+    }
+
     @Transactional
     public RefreshResponse refresh(RefreshRequest request) {
         RefreshToken current = refreshTokenRepository.findByTokenWithUser(request.getRefreshToken())
@@ -95,5 +139,36 @@ public class AuthService {
         refreshTokenRepository.save(nextToken);
 
         return new RefreshResponse(accessToken, refreshPayload.token());
+    }
+
+    private User getAuthenticatedUser(Authentication authentication) {
+        if (authentication == null || authentication.getPrincipal() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+
+        Long userId;
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof Number number) {
+            userId = number.longValue();
+        } else {
+            try {
+                userId = Long.valueOf(principal.toString());
+            } catch (NumberFormatException ex) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+            }
+        }
+
+        return userRepository.findById(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized"));
+    }
+
+    private MyProfileResponse toMyProfileResponse(User user) {
+        return new MyProfileResponse(
+            user.getId(),
+            user.getFirstName(),
+            user.getLastName(),
+            user.getEmail(),
+            user.getPhone()
+        );
     }
 }

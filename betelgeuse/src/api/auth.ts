@@ -63,6 +63,7 @@ export async function forgotPassword(
 
 export async function getMyProfile(): Promise<ProfileResponse> {
   const res = await axiosInstance.get<ProfileResponse>("/auth/me");
+  console.log('................', res)
   return res.data;
 }
 
