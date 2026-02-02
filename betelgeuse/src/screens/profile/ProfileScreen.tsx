@@ -34,6 +34,7 @@ export default function ProfileScreen() {
     email: "",
     phone: "",
   });
+  const [initialProfileForm, setInitialProfileForm] = useState<ProfileFormState | null>(null);
 
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -48,6 +49,12 @@ export default function ProfileScreen() {
         setProfileError(null);
         const profile = await getMyProfile();
         setProfileForm({
+          firstName: profile.firstName ?? "",
+          lastName: profile.lastName ?? "",
+          email: profile.email ?? "",
+          phone: profile.phone ?? "",
+        });
+        setInitialProfileForm({
           firstName: profile.firstName ?? "",
           lastName: profile.lastName ?? "",
           email: profile.email ?? "",
@@ -84,6 +91,24 @@ export default function ProfileScreen() {
     return null;
   }, [passwordForm]);
 
+  const passwordChanged = useMemo(() => {
+    return Boolean(
+      passwordForm.currentPassword ||
+      passwordForm.newPassword ||
+      passwordForm.confirmPassword
+    );
+  }, [passwordForm]);
+
+  const profileChanged = useMemo(() => {
+    if (!initialProfileForm) return false;
+    return (
+      profileForm.firstName.trim() !== initialProfileForm.firstName.trim() ||
+      profileForm.lastName.trim() !== initialProfileForm.lastName.trim() ||
+      profileForm.email.trim() !== initialProfileForm.email.trim() ||
+      profileForm.phone.trim() !== initialProfileForm.phone.trim()
+    );
+  }, [initialProfileForm, profileForm]);
+
   const onSaveProfile = async () => {
     if (profileValidationError) {
       setProfileError(profileValidationError);
@@ -104,6 +129,12 @@ export default function ProfileScreen() {
 
       const updated = await updateMyProfile(payload);
       setProfileForm({
+        firstName: updated.firstName ?? "",
+        lastName: updated.lastName ?? "",
+        email: updated.email ?? "",
+        phone: updated.phone ?? "",
+      });
+      setInitialProfileForm({
         firstName: updated.firstName ?? "",
         lastName: updated.lastName ?? "",
         email: updated.email ?? "",
@@ -195,6 +226,7 @@ export default function ProfileScreen() {
           label="Save profile"
           loadingLabel="Saving profile..."
           loading={savingProfile}
+          disabled={!profileChanged}
           onPress={onSaveProfile}
         />
       </View>
@@ -230,6 +262,7 @@ export default function ProfileScreen() {
           label="Change password"
           loadingLabel="Updating password..."
           loading={savingPassword}
+          disabled={!passwordChanged}
           onPress={onChangePassword}
         />
       </View>
