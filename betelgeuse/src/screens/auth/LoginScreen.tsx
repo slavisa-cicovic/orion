@@ -6,6 +6,7 @@ import AuthScreenLayout from "@src/screens/auth/components/layout/auth-screen-la
 import AuthField from "@src/screens/auth/components/ui/auth-field";
 import AuthHeader from "@src/screens/auth/components/ui/auth-header";
 import { useAuthStore } from "@src/state/auth-store";
+import { getApiErrorMessage } from "@src/utils/api-error";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 
@@ -24,7 +25,7 @@ export default function LoginScreen() {
       const data = await login({ usernameOrEmail, password });
       setAccessToken(data.accessToken);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(getApiErrorMessage(err, "Login failed"));
     } finally {
       setLoading(false);
     }

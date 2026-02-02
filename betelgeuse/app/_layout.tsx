@@ -29,7 +29,7 @@ function AuthGate() {
     } else if (accessToken && inAuthRoute) {
       router.replace("/home");
     }
-  }, [accessToken, router, segments]);
+  }, [accessToken, router, segments, hydrated, navState?.key]);
 
   if (!hydrated) {
     return (

@@ -6,6 +6,7 @@ import AuthField from "@src/screens/auth/components/ui/auth-field";
 import SubmitButton from "@src/components/ui/submit-button";
 import LinkButton from "@src/components/ui/link-button";
 import ApiFeedback from "@src/components/ui/api-feedback";
+import { getApiErrorMessage } from "@src/utils/api-error";
 import { useRouter } from "expo-router";
 
 export default function RegisterScreen() {
@@ -25,7 +26,7 @@ export default function RegisterScreen() {
       await register({ firstName, lastName, email, password, companyCode });
       router.replace("/login");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Register failed");
+      setError(getApiErrorMessage(err, "Register failed"));
     } finally {
       setLoading(false);
     }

@@ -1,14 +1,14 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useAuth } from "@src/state/auth-context";
+import { useAuthStore } from "@src/state/auth-store";
 
 export default function HomeScreen() {
-  const { signOut } = useAuth();
+  const clearSession = useAuthStore((state) => state.clearSession);
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Home</Text>
       <Text style={styles.subtitle}>Placeholder content for Betelgeuse.</Text>
-      <Pressable style={styles.button} onPress={signOut}>
+      <Pressable style={styles.button} onPress={() => void clearSession()}>
         <Text style={styles.buttonText}>Sign out</Text>
       </Pressable>
     </View>

@@ -1,59 +1,54 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { useRouter } from "expo-router";
 import { forgotPassword } from "@src/api/auth";
-import { Link } from "expo-router";
+import ApiFeedback from "@src/components/ui/api-feedback";
+import LinkButton from "@src/components/ui/link-button";
+import SubmitButton from "@src/components/ui/submit-button";
+import AuthScreenLayout from "@src/screens/auth/components/layout/auth-screen-layout";
+import AuthField from "@src/screens/auth/components/ui/auth-field";
+import AuthHeader from "@src/screens/auth/components/ui/auth-header";
+import { getApiErrorMessage } from "@src/utils/api-error";
 
 export default function ForgotPasswordScreen() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const onSubmit = async () => {
     try {
       setLoading(true);
       setError(null);
-      setSuccess(false);
+      setSuccess(null);
       await forgotPassword({ email });
-      setSuccess(true);
+      setSuccess("Check your inbox for reset instructions.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Request failed");
+      setError(getApiErrorMessage(err, "Request failed"));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Forgot password</Text>
-      {error && <Text style={styles.errorText}>{error}</Text>}
-      {success && (
-        <Text style={styles.successText}>Check your inbox for reset instructions</Text>
-      )}
-      <TextInput
-        placeholder="Email"
-        autoCapitalize="none"
+    <AuthScreenLayout>
+      <AuthHeader title="Forgot password" subtitle="We will send you a reset link" />
+      <ApiFeedback message={error || success} tone={error ? "error" : "success"} />
+      <AuthField
+        label="Email"
         value={email}
-        onChangeText={setEmail}
-        style={styles.input}
+        onChange={setEmail}
+        placeholder="Email"
+        keyboardType="email-address"
+        iconName="email"
       />
-      <Pressable style={styles.button} onPress={onSubmit} disabled={loading}>
-        <Text style={styles.buttonText}>{loading ? "Sending..." : "Send reset link"}</Text>
-      </Pressable>
-      <View style={styles.links}>
-        <Link href="/login">Back to login</Link>
-      </View>
-    </View>
+      <SubmitButton
+        label="Send reset link"
+        loadingLabel="Sending..."
+        loading={loading}
+        onPress={onSubmit}
+      />
+      <LinkButton label="Back to login" onPress={() => router.push("/login")} />
+    </AuthScreenLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, justifyContent: "center" },
-  title: { fontSize: 24, fontWeight: "600", marginBottom: 16 },
-  input: { borderWidth: 1, borderColor: "#ddd", padding: 12, borderRadius: 8, marginBottom: 12 },
-  button: { backgroundColor: "#2563eb", padding: 12, borderRadius: 8, alignItems: "center" },
-  buttonText: { color: "#fff", fontWeight: "600" },
-  links: { marginTop: 16 },
-  errorText: { color: "#b91c1c", marginBottom: 12 },
-  successText: { color: "#166534", marginBottom: 12 }
-});
