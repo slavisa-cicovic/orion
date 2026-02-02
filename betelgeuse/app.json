@@ -5,11 +5,20 @@
     "version": "0.1.0",
     "scheme": "betelgeuse",
     "orientation": "portrait",
-    "platforms": ["ios", "android", "web"],
-    "assetBundlePatterns": ["**/*"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true
     },
-    "android": {}
+    "android": {},
+    "plugins": [
+      "expo-font"
+    ]
   }
 }
