@@ -45,6 +45,7 @@ function AuthGate() {
       <Stack.Screen name="register" />
       <Stack.Screen name="forgot-password" />
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="publish-users" />
       <Stack.Screen name="index" />
     </Stack>
   );

@@ -5,11 +5,15 @@ import com.orion.alnilam.domain.application.CompanyApplicationAccess;
 import com.orion.alnilam.domain.application.CompanyUserApplicationAccess;
 import com.orion.alnilam.domain.enums.Role;
 import com.orion.alnilam.domain.user.User;
+import com.orion.alnilam.dto.request.MobilePublishUsersRequest;
 import com.orion.alnilam.dto.response.MobileHomeAppResponse;
+import com.orion.alnilam.dto.response.MobilePublishUserResponse;
+import com.orion.alnilam.dto.response.PagedResponse;
 import com.orion.alnilam.repository.CompanyApplicationAccessRepository;
 import com.orion.alnilam.repository.CompanyUserApplicationAccessRepository;
 import com.orion.alnilam.repository.UserRepository;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,10 +53,121 @@ public class MobileHomeService {
         }
 
         if (roles.contains(Role.COMPANY_USER) || roles.contains(Role.COMPANY_PILOT_USER)) {
-            return listForCompanyUser(companyId);
+            return listForCompanyUser(companyId, actor.getId());
         }
 
         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Unsupported role for mobile home");
+    }
+
+    public PagedResponse<MobilePublishUserResponse> listPublishUsers(
+        Long appId,
+        int page,
+        int pageSize,
+        String search,
+        Authentication authentication
+    ) {
+        User actor = getAuthenticatedUser(authentication);
+        Long companyId = actor.getCompanyId();
+        if (companyId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not assigned to company");
+        }
+
+        if (!currentRoles(authentication).contains(Role.COMPANY_ADMIN)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only COMPANY_ADMIN can manage app publish users");
+        }
+
+        ApplicationVersion targetVersion = resolveCompanyVersion(appId, companyId);
+        List<User> companyUsers = listCompanyUsers(companyId, search);
+
+        boolean publishedToAll = companyUserAccessRepository.existsByCompanyIdAndApplicationVersion_IdAndUserIdIsNull(
+            companyId,
+            targetVersion.getId()
+        );
+        Set<Long> publishedUserIds = publishedToAll
+            ? Set.of()
+            : loadPublishedUserIds(companyId, targetVersion.getId());
+
+        int safePage = Math.max(0, page);
+        int safePageSize = Math.min(200, Math.max(1, pageSize));
+        int fromIndex = safePage * safePageSize;
+        if (fromIndex >= companyUsers.size()) {
+            return new PagedResponse<>(List.of(), safePage, safePageSize, companyUsers.size());
+        }
+        int toIndex = Math.min(companyUsers.size(), fromIndex + safePageSize);
+
+        List<MobilePublishUserResponse> items = companyUsers.subList(fromIndex, toIndex).stream()
+            .map(user -> new MobilePublishUserResponse(
+                user.getId(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getEmail(),
+                user.getRoles().contains(Role.COMPANY_PILOT_USER),
+                publishedToAll || publishedUserIds.contains(user.getId())
+            ))
+            .toList();
+
+        return new PagedResponse<>(items, safePage, safePageSize, companyUsers.size());
+    }
+
+    public MobileHomeAppResponse publishToSelectedUsers(
+        Long appId,
+        MobilePublishUsersRequest request,
+        Authentication authentication
+    ) {
+        User actor = getAuthenticatedUser(authentication);
+        Long companyId = actor.getCompanyId();
+        if (companyId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not assigned to company");
+        }
+
+        if (!currentRoles(authentication).contains(Role.COMPANY_ADMIN)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only COMPANY_ADMIN can publish to company users");
+        }
+
+        ApplicationVersion targetVersion = resolveCompanyVersion(appId, companyId);
+
+        if (companyUserAccessRepository.existsByCompanyIdAndApplicationVersion_IdAndUserIdIsNull(
+            companyId,
+            targetVersion.getId()
+        )) {
+            long totalCompanyUsers = countCompanyUsers(companyId);
+            return toResponse(targetVersion, "PUBLISHED_TO_USERS", true, totalCompanyUsers, totalCompanyUsers);
+        }
+
+        Set<Long> allowedUserIds = listCompanyUsers(companyId, null).stream()
+            .map(User::getId)
+            .collect(java.util.stream.Collectors.toSet());
+
+        Set<Long> requestedUserIds = new HashSet<>(request.userIds());
+        if (requestedUserIds.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No users selected");
+        }
+
+        for (Long userId : requestedUserIds) {
+            if (!allowedUserIds.contains(userId)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Selected users must belong to your company");
+            }
+        }
+
+        for (Long userId : requestedUserIds) {
+            boolean exists = companyUserAccessRepository.existsByCompanyIdAndApplicationVersion_IdAndUserId(
+                companyId,
+                targetVersion.getId(),
+                userId
+            );
+            if (!exists) {
+                CompanyUserApplicationAccess access = new CompanyUserApplicationAccess();
+                access.setCompanyId(companyId);
+                access.setUserId(userId);
+                access.setApplicationVersion(targetVersion);
+                access.setCreatedById(actor.getId());
+                companyUserAccessRepository.save(access);
+            }
+        }
+
+        long totalCompanyUsers = countCompanyUsers(companyId);
+        long publishedUsersCount = countPublishedUsers(companyId, targetVersion.getId(), totalCompanyUsers);
+        return toResponse(targetVersion, "PUBLISHED_TO_USERS", true, publishedUsersCount, totalCompanyUsers);
     }
 
     public MobileHomeAppResponse publishToCompanyUsers(Long appId, Authentication authentication) {
@@ -62,33 +177,37 @@ public class MobileHomeService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not assigned to company");
         }
 
-        Set<Role> roles = currentRoles(authentication);
-        if (!roles.contains(Role.COMPANY_ADMIN)) {
+        if (!currentRoles(authentication).contains(Role.COMPANY_ADMIN)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only COMPANY_ADMIN can publish to company users");
         }
 
-        Map<Long, ApplicationVersion> latestCompanyVersions = latestByAppFromCompanyAccess(companyId);
-        ApplicationVersion version = latestCompanyVersions.get(appId);
-        if (version == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Application is not available for this company");
+        ApplicationVersion targetVersion = resolveCompanyVersion(appId, companyId);
+        List<User> allUsers = listCompanyUsers(companyId, null);
+        Set<Long> allUserIds = allUsers.stream().map(User::getId).collect(java.util.stream.Collectors.toSet());
+
+        for (Long userId : allUserIds) {
+            boolean exists = companyUserAccessRepository.existsByCompanyIdAndApplicationVersion_IdAndUserId(
+                companyId,
+                targetVersion.getId(),
+                userId
+            );
+            if (!exists) {
+                CompanyUserApplicationAccess access = new CompanyUserApplicationAccess();
+                access.setCompanyId(companyId);
+                access.setUserId(userId);
+                access.setApplicationVersion(targetVersion);
+                access.setCreatedById(actor.getId());
+                companyUserAccessRepository.save(access);
+            }
         }
 
-        boolean exists = companyUserAccessRepository.existsByCompanyIdAndApplicationVersionId(companyId, version.getId());
-        if (!exists) {
-            CompanyUserApplicationAccess access = new CompanyUserApplicationAccess();
-            access.setCompanyId(companyId);
-            access.setApplicationVersion(version);
-            access.setCreatedById(actor.getId());
-            companyUserAccessRepository.save(access);
-        }
-
-        long totalCompanyUsers = countCompanyUsers(companyId);
-        return toResponse(version, "PUBLISHED_TO_USERS", true, totalCompanyUsers, totalCompanyUsers);
+        long totalCompanyUsers = allUserIds.size();
+        return toResponse(targetVersion, "PUBLISHED_TO_USERS", true, totalCompanyUsers, totalCompanyUsers);
     }
 
     private List<MobileHomeAppResponse> listForCompanyAdmin(Long companyId) {
         Map<Long, ApplicationVersion> latestCompanyVersions = latestByAppFromCompanyAccess(companyId);
-        Map<Long, ApplicationVersion> latestPublishedToUsers = latestByAppFromUserPublish(companyId);
+        Map<Long, ApplicationVersion> latestPublishedToUsers = latestByAppFromUserPublish(companyId, null);
         long totalCompanyUsers = countCompanyUsers(companyId);
 
         return latestCompanyVersions.values().stream()
@@ -101,21 +220,30 @@ public class MobileHomeService {
                 if (publishedToUsers != null
                     && compareVersionName(publishedToUsers.getVersionName(), version.getVersionName()) >= 0) {
                     status = "PUBLISHED_TO_USERS";
-                    publishedToUsersCount = totalCompanyUsers;
+                    publishedToUsersCount = countPublishedUsers(companyId, version.getId(), totalCompanyUsers);
                 }
                 return toResponse(version, status, true, publishedToUsersCount, totalCompanyUsers);
             })
             .toList();
     }
 
-    private List<MobileHomeAppResponse> listForCompanyUser(Long companyId) {
-        Map<Long, ApplicationVersion> latestByApp = latestByAppFromUserPublish(companyId);
+    private List<MobileHomeAppResponse> listForCompanyUser(Long companyId, Long userId) {
+        Map<Long, ApplicationVersion> latestByApp = latestByAppFromUserPublish(companyId, userId);
         long totalCompanyUsers = countCompanyUsers(companyId);
         return latestByApp.values().stream()
             .sorted((left, right) -> left.getApplication().getDisplayName()
                 .compareToIgnoreCase(right.getApplication().getDisplayName()))
             .map(version -> toResponse(version, "PUBLISHED_TO_USERS", false, totalCompanyUsers, totalCompanyUsers))
             .toList();
+    }
+
+    private ApplicationVersion resolveCompanyVersion(Long appId, Long companyId) {
+        Map<Long, ApplicationVersion> latestCompanyVersions = latestByAppFromCompanyAccess(companyId);
+        ApplicationVersion version = latestCompanyVersions.get(appId);
+        if (version == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Application is not available for this company");
+        }
+        return version;
     }
 
     private Map<Long, ApplicationVersion> latestByAppFromCompanyAccess(Long companyId) {
@@ -133,10 +261,16 @@ public class MobileHomeService {
         return latestByApp;
     }
 
-    private Map<Long, ApplicationVersion> latestByAppFromUserPublish(Long companyId) {
+    private Map<Long, ApplicationVersion> latestByAppFromUserPublish(Long companyId, Long userId) {
         List<CompanyUserApplicationAccess> accesses = companyUserAccessRepository.findByCompanyIdWithApplication(companyId);
         Map<Long, ApplicationVersion> latestByApp = new HashMap<>();
         for (CompanyUserApplicationAccess access : accesses) {
+            if (userId != null && access.getUserId() != null && !access.getUserId().equals(userId)) {
+                continue;
+            }
+            if (userId != null && access.getUserId() == null) {
+                // Published to all users.
+            }
             ApplicationVersion version = access.getApplicationVersion();
             Long appId = version.getApplication().getId();
             ApplicationVersion existing = latestByApp.get(appId);
@@ -176,6 +310,62 @@ public class MobileHomeService {
             .filter(user ->
                 user.getRoles().contains(Role.COMPANY_USER) || user.getRoles().contains(Role.COMPANY_PILOT_USER))
             .count();
+    }
+
+    private Set<Long> loadPublishedUserIds(Long companyId, Long versionId) {
+        return companyUserAccessRepository.findByCompanyIdAndApplicationVersion_Id(companyId, versionId).stream()
+            .map(CompanyUserApplicationAccess::getUserId)
+            .filter(java.util.Objects::nonNull)
+            .collect(java.util.stream.Collectors.toSet());
+    }
+
+    private long countPublishedUsers(Long companyId, Long versionId, long totalCompanyUsers) {
+        boolean publishedToAll = companyUserAccessRepository.existsByCompanyIdAndApplicationVersion_IdAndUserIdIsNull(
+            companyId,
+            versionId
+        );
+        if (publishedToAll) {
+            return totalCompanyUsers;
+        }
+        return loadPublishedUserIds(companyId, versionId).size();
+    }
+
+    private List<User> listCompanyUsers(Long companyId, String search) {
+        String normalizedSearch = search == null ? "" : search.trim().toLowerCase();
+
+        return userRepository.findByCompanyId(companyId).stream()
+            .filter(User::isActive)
+            .filter(user ->
+                user.getRoles().contains(Role.COMPANY_USER) || user.getRoles().contains(Role.COMPANY_PILOT_USER))
+            .filter(user -> {
+                if (normalizedSearch.isEmpty()) {
+                    return true;
+                }
+                String haystack = ((user.getFirstName() == null ? "" : user.getFirstName()) + " "
+                    + (user.getLastName() == null ? "" : user.getLastName()) + " "
+                    + (user.getEmail() == null ? "" : user.getEmail()) + " "
+                    + (user.getUsername() == null ? "" : user.getUsername())).toLowerCase();
+                return haystack.contains(normalizedSearch);
+            })
+            .sorted((left, right) -> {
+                boolean leftPilot = left.getRoles().contains(Role.COMPANY_PILOT_USER);
+                boolean rightPilot = right.getRoles().contains(Role.COMPANY_PILOT_USER);
+                if (leftPilot != rightPilot) {
+                    return leftPilot ? -1 : 1;
+                }
+                String leftName = ((left.getFirstName() == null ? "" : left.getFirstName()) + " "
+                    + (left.getLastName() == null ? "" : left.getLastName())).trim();
+                String rightName = ((right.getFirstName() == null ? "" : right.getFirstName()) + " "
+                    + (right.getLastName() == null ? "" : right.getLastName())).trim();
+                int byName = leftName.compareToIgnoreCase(rightName);
+                if (byName != 0) {
+                    return byName;
+                }
+                String leftEmail = left.getEmail() == null ? "" : left.getEmail();
+                String rightEmail = right.getEmail() == null ? "" : right.getEmail();
+                return leftEmail.compareToIgnoreCase(rightEmail);
+            })
+            .toList();
     }
 
     private User getAuthenticatedUser(Authentication authentication) {

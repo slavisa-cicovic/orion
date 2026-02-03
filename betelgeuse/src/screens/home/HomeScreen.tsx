@@ -12,10 +12,11 @@ import {
   View,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system/legacy";
 import * as IntentLauncher from "expo-intent-launcher";
-import { getHomeApps, publishAppToCompanyUsers, type HomeAppCard } from "@src/api/home";
+import { getHomeApps, type HomeAppCard } from "@src/api/home";
 import ScrollScreen from "@src/components/layout/scroll-screen";
 import ApiFeedback from "@src/components/ui/api-feedback";
 import { API_BASE_URL } from "@src/constants/config";
@@ -42,8 +43,8 @@ const DOWNLOAD_STATE_KEY = "betelgeuse.home.download-state";
 const DOWNLOAD_DIR = `${FileSystem.documentDirectory ?? ""}downloads/`;
 
 export default function HomeScreen() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [publishingAppId, setPublishingAppId] = useState<number | null>(null);
   const [apps, setApps] = useState<HomeAppCard[]>([]);
   const [downloadState, setDownloadState] = useState<Record<string, DownloadEntry>>({});
   const [installedPackages, setInstalledPackages] = useState<Record<string, boolean>>({});
@@ -234,18 +235,15 @@ export default function HomeScreen() {
     await downloadApp(app);
   }, [downloadApp, getEntry, installApp, installedPackages]);
 
-  const onPublishToUsers = useCallback(async (appId: number) => {
-    try {
-      setPublishingAppId(appId);
-      setError(null);
-      const updated = await publishAppToCompanyUsers(appId);
-      setApps((prev) => prev.map((item) => (item.appId === appId ? updated : item)));
-    } catch (err) {
-      setError(getApiErrorMessage(err, "Failed to publish app to company users"));
-    } finally {
-      setPublishingAppId(null);
-    }
-  }, []);
+  const onOpenPublishUsers = useCallback((app: HomeAppCard) => {
+    router.push({
+      pathname: "/publish-users",
+      params: {
+        appId: String(app.appId),
+        appName: app.appName,
+      },
+    });
+  }, [router]);
 
   const appCards = useMemo(
     () =>
@@ -294,20 +292,17 @@ export default function HomeScreen() {
 
               {app.canPublishToCompanyUsers ? (
                 <Pressable
-                  style={[styles.primaryBtn, publishingAppId === app.appId ? styles.btnDisabled : null]}
-                  disabled={publishingAppId === app.appId}
-                  onPress={() => void onPublishToUsers(app.appId)}
+                  style={styles.primaryBtn}
+                  onPress={() => onOpenPublishUsers(app)}
                 >
-                  <Text style={styles.primaryBtnText}>
-                    {publishingAppId === app.appId ? "Publishing..." : "Publish to users"}
-                  </Text>
+                  <Text style={styles.primaryBtnText}>Publish to users</Text>
                 </Pressable>
               ) : null}
             </View>
           </View>
         );
       }),
-    [apps, getEntry, installedPackages, onGetOrInstall, onPublishToUsers, publishingAppId],
+    [apps, getEntry, installedPackages, onGetOrInstall, onOpenPublishUsers],
   );
 
   return (

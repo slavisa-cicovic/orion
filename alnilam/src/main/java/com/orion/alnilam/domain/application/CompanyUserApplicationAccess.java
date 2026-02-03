@@ -28,6 +28,9 @@ public class CompanyUserApplicationAccess {
     @Column(name = "company_id", nullable = false)
     private Long companyId;
 
+    @Column(name = "user_id")
+    private Long userId;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "application_version_id", nullable = false)
     private ApplicationVersion applicationVersion;

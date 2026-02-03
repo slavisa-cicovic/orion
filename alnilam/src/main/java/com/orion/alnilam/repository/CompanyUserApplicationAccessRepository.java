@@ -7,7 +7,15 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface CompanyUserApplicationAccessRepository extends JpaRepository<CompanyUserApplicationAccess, Long> {
-    boolean existsByCompanyIdAndApplicationVersionId(Long companyId, Long applicationVersionId);
+    boolean existsByCompanyIdAndApplicationVersion_Id(Long companyId, Long applicationVersionId);
+    boolean existsByCompanyIdAndApplicationVersion_IdAndUserIdIsNull(Long companyId, Long applicationVersionId);
+    boolean existsByCompanyIdAndApplicationVersion_IdAndUserId(
+        Long companyId,
+        Long applicationVersionId,
+        Long userId
+    );
+
+    List<CompanyUserApplicationAccess> findByCompanyIdAndApplicationVersion_Id(Long companyId, Long applicationVersionId);
 
     @Query("""
         select access

@@ -28,7 +28,7 @@ export default function AppBar({ title, action }: AppBarProps) {
     <View style={styles.wrapper}>
       <View style={styles.bar}>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Water Meter</Text>
+          <Text style={styles.headerTitle}>Orion / Betelgeuse</Text>
           <Text style={styles.headerSubtitle}>{title}</Text>
         </View>
         <View style={styles.actions}>

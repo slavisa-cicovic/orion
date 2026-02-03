@@ -31,6 +31,14 @@ type ScrollScreenProps = {
 
 const CONTENT_PADDING_BOTTOM = 32;
 
+function useOptionalBottomTabBarHeight() {
+  try {
+    return useBottomTabBarHeight();
+  } catch {
+    return 0;
+  }
+}
+
 export default function ScrollScreen({
   title,
   children,
@@ -41,7 +49,7 @@ export default function ScrollScreen({
   onRefresh,
   action,
 }: ScrollScreenProps) {
-  const tabBarHeight = useBottomTabBarHeight();
+  const tabBarHeight = useOptionalBottomTabBarHeight();
   const insets = useSafeAreaInsets();
   const bottomPadding = CONTENT_PADDING_BOTTOM + tabBarHeight + insets.bottom;
 
