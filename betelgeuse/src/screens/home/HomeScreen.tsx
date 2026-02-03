@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  AppState,
+  AppStateStatus,
   ActivityIndicator,
   Alert,
   Image,
@@ -46,6 +48,7 @@ export default function HomeScreen() {
   const [downloadState, setDownloadState] = useState<Record<string, DownloadEntry>>({});
   const [installedPackages, setInstalledPackages] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
+  const appsRef = useRef<HomeAppCard[]>([]);
 
   const versionKey = useCallback((app: HomeAppCard) => `${app.appId}:${app.versionName}`, []);
 
@@ -66,32 +69,62 @@ export default function HomeScreen() {
     AsyncStorage.setItem(DOWNLOAD_STATE_KEY, JSON.stringify(downloadState)).catch(() => undefined);
   }, [downloadState]);
 
+  useEffect(() => {
+    appsRef.current = apps;
+  }, [apps]);
+
+  const refreshInstalledPackages = useCallback(async (sourceApps: HomeAppCard[]) => {
+    if (Platform.OS !== "android") {
+      setInstalledPackages({});
+      return;
+    }
+
+    if (!sourceApps.length) {
+      setInstalledPackages({});
+      return;
+    }
+
+    const checks = await Promise.all(
+      sourceApps.map(async (app) => [app.appPackageName, await isAndroidAppInstalled(app.appPackageName)] as const),
+    );
+    setInstalledPackages(Object.fromEntries(checks));
+  }, []);
+
   const loadApps = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const data = await getHomeApps();
       setApps(data);
-      if (Platform.OS === "android") {
-        const checks = await Promise.all(
-          data.map(async (app) => [app.appPackageName, await isAndroidAppInstalled(app.appPackageName)] as const),
-        );
-        setInstalledPackages(Object.fromEntries(checks));
-      } else {
-        setInstalledPackages({});
-      }
+      await refreshInstalledPackages(data);
     } catch (err) {
       setError(getApiErrorMessage(err, "Failed to load apps"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [refreshInstalledPackages]);
 
   useFocusEffect(
     useCallback(() => {
       void loadDownloadState();
       void loadApps();
-    }, [loadApps, loadDownloadState]),
+
+      const checkInstalled = () => {
+        void refreshInstalledPackages(appsRef.current);
+      };
+
+      const intervalId = setInterval(checkInstalled, 10_000);
+      const appStateSub = AppState.addEventListener("change", (state: AppStateStatus) => {
+        if (state === "active") {
+          checkInstalled();
+        }
+      });
+
+      return () => {
+        clearInterval(intervalId);
+        appStateSub.remove();
+      };
+    }, [loadApps, loadDownloadState, refreshInstalledPackages]),
   );
 
   const ensureDownloadDir = useCallback(async () => {
