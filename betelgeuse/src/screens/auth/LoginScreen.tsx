@@ -12,7 +12,7 @@ import { useState } from "react";
 
 export default function LoginScreen() {
   const router = useRouter();
-  const setAccessToken = useAuthStore((state) => state.setAccessToken);
+  const setSession = useAuthStore((state) => state.setSession);
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +23,7 @@ export default function LoginScreen() {
       setLoading(true);
       setError(null);
       const data = await login({ usernameOrEmail, password });
-      setAccessToken(data.accessToken);
+      setSession({ accessToken: data.accessToken, refreshToken: data.refreshToken });
     } catch (err) {
       setError(getApiErrorMessage(err, "Login failed"));
     } finally {
