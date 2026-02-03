@@ -237,7 +237,7 @@ export default function HomeScreen() {
 
   const onOpenPublishUsers = useCallback((app: HomeAppCard) => {
     router.push({
-      pathname: "/publish-users",
+      pathname: "/(tabs)/publish-users",
       params: {
         appId: String(app.appId),
         appName: app.appName,

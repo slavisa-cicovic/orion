@@ -5,6 +5,13 @@ export default function TabsLayout() {
     <Tabs screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="home" options={{ title: "Home" }} />
       <Tabs.Screen name="profile" options={{ title: "Profile" }} />
+      <Tabs.Screen
+        name="publish-users"
+        options={{
+          title: "Publish users",
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
