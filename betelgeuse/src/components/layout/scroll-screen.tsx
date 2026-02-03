@@ -10,8 +10,11 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import AppBar from "@src/components/layout/app-bar";
+
+type MaterialCommunityIconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
 type ScrollScreenProps = {
   title: string;
@@ -22,7 +25,7 @@ type ScrollScreenProps = {
   refreshing?: boolean;
   onRefresh?: () => void;
   action?: {
-    icon: string;
+    icon: MaterialCommunityIconName;
     onPress: () => void;
     disabled?: boolean;
     accessibilityLabel?: string;

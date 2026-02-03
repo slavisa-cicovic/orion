@@ -2,10 +2,12 @@ import { InteractionManager, StyleSheet, Text, TouchableOpacity, View } from "re
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuthStore } from "@src/state/auth-store";
 
+type MaterialCommunityIconName = keyof typeof MaterialCommunityIcons.glyphMap;
+
 type AppBarProps = {
   title: string;
   action?: {
-    icon: string;
+    icon: MaterialCommunityIconName;
     onPress: () => void;
     disabled?: boolean;
     accessibilityLabel?: string;
