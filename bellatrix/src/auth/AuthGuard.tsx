@@ -10,7 +10,8 @@ type AuthGuardProps = {
 
 export default function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
-  const { isAuthenticated, isInitializing } = useAuth();
+  const { isAuthenticated, isInitializing, roles, logout } = useAuth();
+  const isSuperAdmin = roles.includes("SUPER_ADMIN");
 
   useEffect(() => {
     if (!isInitializing && !isAuthenticated) {
@@ -18,7 +19,14 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     }
   }, [isAuthenticated, isInitializing, router]);
 
-  if (isInitializing || !isAuthenticated) {
+  useEffect(() => {
+    if (!isInitializing && isAuthenticated && !isSuperAdmin) {
+      void logout();
+      router.replace("/login");
+    }
+  }, [isInitializing, isAuthenticated, isSuperAdmin, logout, router]);
+
+  if (isInitializing || !isAuthenticated || !isSuperAdmin) {
     return null;
   }
 
