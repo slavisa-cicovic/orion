@@ -2,15 +2,20 @@ package com.orion.alnilam.service.auth;
 
 import com.orion.alnilam.dto.request.ChangePasswordRequest;
 import com.orion.alnilam.dto.request.LoginRequest;
+import com.orion.alnilam.dto.request.RegisterRequest;
 import com.orion.alnilam.dto.request.UpdateMyProfileRequest;
 import com.orion.alnilam.dto.response.MyProfileResponse;
 import com.orion.alnilam.dto.response.LoginResponse;
 import com.orion.alnilam.dto.request.RefreshRequest;
 import com.orion.alnilam.dto.response.RefreshResponse;
+import com.orion.alnilam.domain.company.Company;
 import com.orion.alnilam.domain.RefreshToken;
+import com.orion.alnilam.domain.registration.RegistrationRequest;
 import com.orion.alnilam.service.security.JwtService;
 import com.orion.alnilam.domain.user.User;
+import com.orion.alnilam.repository.CompanyRepository;
 import com.orion.alnilam.repository.RefreshTokenRepository;
+import com.orion.alnilam.repository.RegistrationRequestRepository;
 import com.orion.alnilam.repository.UserRepository;
 import java.time.Instant;
 import org.springframework.security.core.Authentication;
@@ -23,20 +28,50 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class AuthService {
     private final UserRepository userRepository;
+    private final CompanyRepository companyRepository;
+    private final RegistrationRequestRepository registrationRequestRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
     public AuthService(
         UserRepository userRepository,
+        CompanyRepository companyRepository,
+        RegistrationRequestRepository registrationRequestRepository,
         RefreshTokenRepository refreshTokenRepository,
         PasswordEncoder passwordEncoder,
         JwtService jwtService
     ) {
         this.userRepository = userRepository;
+        this.companyRepository = companyRepository;
+        this.registrationRequestRepository = registrationRequestRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+    }
+
+    @Transactional
+    public void register(RegisterRequest request) {
+        Company company = companyRepository.findByCodeIgnoreCase(request.getCompanyCode().trim())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid company code"));
+
+        if (!company.isActive()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Company is inactive");
+        }
+
+        String normalizedEmail = request.getEmail().trim();
+        if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User with this email already exists");
+        }
+
+        RegistrationRequest registrationRequest = new RegistrationRequest();
+        registrationRequest.setCompanyId(company.getId());
+        registrationRequest.setCompanyCode(company.getCode());
+        registrationRequest.setFirstName(request.getFirstName().trim());
+        registrationRequest.setLastName(request.getLastName().trim());
+        registrationRequest.setEmail(normalizedEmail);
+        registrationRequest.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        registrationRequestRepository.save(registrationRequest);
     }
 
     public LoginResponse login(LoginRequest request) {

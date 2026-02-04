@@ -2,6 +2,7 @@ package com.orion.alnilam.controller;
 
 import com.orion.alnilam.dto.request.ChangePasswordRequest;
 import com.orion.alnilam.dto.request.LoginRequest;
+import com.orion.alnilam.dto.request.RegisterRequest;
 import com.orion.alnilam.dto.request.UpdateMyProfileRequest;
 import com.orion.alnilam.dto.response.LoginResponse;
 import com.orion.alnilam.dto.response.MyProfileResponse;
@@ -35,6 +36,12 @@ public class AuthController {
     @PostMapping("/refresh")
     public ResponseEntity<RefreshResponse> refresh(@Valid @RequestBody RefreshRequest request) {
         return ResponseEntity.ok(authService.refresh(request));
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<Void> register(@Valid @RequestBody RegisterRequest request) {
+        authService.register(request);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/me")
