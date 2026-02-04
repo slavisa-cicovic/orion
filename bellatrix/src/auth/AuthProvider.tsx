@@ -120,13 +120,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [setAccessToken]);
 
   const login = useCallback(async (input: LoginInput) => {
-    const { rememberMe, ...payload } = input;
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: {
         "content-type": "application/json"
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(input)
     });
 
     if (!res.ok) {
@@ -137,6 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const data = await res.json();
     setAccessToken(data?.accessToken ?? null);
 
+    const rememberMe = input.rememberMe === true;
     if (rememberMe) {
       localStorage.setItem(rememberMeKey, "true");
     } else {

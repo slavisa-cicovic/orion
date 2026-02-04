@@ -8,7 +8,10 @@ export async function POST() {
 
   const baseUrl = process.env.NEXT_PUBLIC_HOST_API.replace(/\/$/, "");
   const apiBase = baseUrl.endsWith("/api") ? baseUrl : `${baseUrl}/api`;
-  const refreshToken = cookies().get("refreshToken")?.value;
+  const cookieStore = cookies();
+  const refreshToken = cookieStore.get("refreshToken")?.value;
+  const rememberMe = cookieStore.get("rememberMe")?.value === "1";
+  const refreshMaxAgeSeconds = 30 * 24 * 60 * 60;
   if (!refreshToken) {
     return NextResponse.json({ error: "Missing refresh token" }, { status: 401 });
   }
@@ -30,7 +33,8 @@ export async function POST() {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      path: "/"
+      path: "/",
+      maxAge: rememberMe ? refreshMaxAgeSeconds : undefined
     });
   }
 

@@ -8,13 +8,16 @@ export async function POST(request: Request) {
   const baseUrl = process.env.NEXT_PUBLIC_HOST_API.replace(/\/$/, "");
   const apiBase = baseUrl.endsWith("/api") ? baseUrl : `${baseUrl}/api`;
   const body = await request.json();
+  const rememberMe = body?.rememberMe === true;
+  const { rememberMe: _rememberMe, ...loginPayload } = body ?? {};
+  const refreshMaxAgeSeconds = 30 * 24 * 60 * 60;
 
   const res = await fetch(`${apiBase}/auth/login`, {
     method: "POST",
     headers: {
       "content-type": "application/json"
     },
-    body: JSON.stringify(body)
+    body: JSON.stringify(loginPayload)
   });
 
   const text = await res.text();
@@ -26,7 +29,16 @@ export async function POST(request: Request) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      path: "/"
+      path: "/",
+      maxAge: rememberMe ? refreshMaxAgeSeconds : undefined
+    });
+
+    response.cookies.set("rememberMe", rememberMe ? "1" : "0", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+      maxAge: rememberMe ? refreshMaxAgeSeconds : 0
     });
   }
 
