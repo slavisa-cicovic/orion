@@ -273,9 +273,11 @@ export default function HomeScreen() {
               <View style={styles.headerTextWrap}>
                 <Text style={styles.appName}>{app.appName}</Text>
                 <Text style={styles.version}>Version: {app.versionName}</Text>
-                <Text style={styles.status}>
-                  Published users: {app.publishedToUsersCount}/{app.totalCompanyUsers}
-                </Text>
+                {app.canPublishToCompanyUsers ? (
+                  <Text style={styles.status}>
+                    Published users: {app.publishedToUsersCount}/{app.totalCompanyUsers}
+                  </Text>
+                ) : null}
               </View>
             </View>
 

@@ -36,7 +36,7 @@ public class MobileHomeController {
     @PostMapping("/{appId}/publish")
     @PreAuthorize("hasRole('COMPANY_ADMIN')")
     public ResponseEntity<MobileHomeAppResponse> publishToCompanyUsers(
-        @PathVariable Long appId,
+        @PathVariable(name = "appId") Long appId,
         Authentication authentication
     ) {
         return ResponseEntity.ok(mobileHomeService.publishToCompanyUsers(appId, authentication));
@@ -45,7 +45,7 @@ public class MobileHomeController {
     @GetMapping("/{appId}/users")
     @PreAuthorize("hasRole('COMPANY_ADMIN')")
     public ResponseEntity<PagedResponse<MobilePublishUserResponse>> listUsers(
-        @PathVariable Long appId,
+        @PathVariable(name = "appId") Long appId,
         @RequestParam(name = "page", defaultValue = "0") int page,
         @RequestParam(name = "pageSize", defaultValue = "50") int pageSize,
         @RequestParam(name = "search", required = false) String search,
@@ -57,7 +57,7 @@ public class MobileHomeController {
     @PostMapping("/{appId}/publish/users")
     @PreAuthorize("hasRole('COMPANY_ADMIN')")
     public ResponseEntity<MobileHomeAppResponse> publishToSelectedUsers(
-        @PathVariable Long appId,
+        @PathVariable(name = "appId") Long appId,
         @Valid @RequestBody MobilePublishUsersRequest request,
         Authentication authentication
     ) {
