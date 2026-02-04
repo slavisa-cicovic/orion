@@ -78,6 +78,7 @@ public class MobileHomeService {
 
         ApplicationVersion targetVersion = resolveCompanyVersion(appId, companyId);
         List<User> companyUsers = listCompanyUsers(companyId, search);
+        PublishedVersionSnapshot publishedSnapshot = resolveLatestPublishedVersions(companyId, appId);
 
         boolean publishedToAll = companyUserAccessRepository.existsByCompanyIdAndApplicationVersion_IdAndUserIdIsNull(
             companyId,
@@ -96,14 +97,26 @@ public class MobileHomeService {
         int toIndex = Math.min(companyUsers.size(), fromIndex + safePageSize);
 
         List<MobilePublishUserResponse> items = companyUsers.subList(fromIndex, toIndex).stream()
-            .map(user -> new MobilePublishUserResponse(
-                user.getId(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getEmail(),
-                user.getRoles().contains(Role.COMPANY_PILOT_USER),
-                publishedToAll || publishedUserIds.contains(user.getId())
-            ))
+            .map(user -> {
+                String latestPublishedVersionName = publishedSnapshot.latestVersionByUserId().get(user.getId());
+                String latestPublishedToAll = publishedSnapshot.latestPublishedToAllVersionName();
+                if (latestPublishedToAll != null
+                    && (latestPublishedVersionName == null
+                        || compareVersionName(latestPublishedToAll, latestPublishedVersionName) > 0)) {
+                    latestPublishedVersionName = latestPublishedToAll;
+                }
+
+                return new MobilePublishUserResponse(
+                    user.getId(),
+                    user.getFirstName(),
+                    user.getLastName(),
+                    user.getEmail(),
+                    user.getRoles().contains(Role.COMPANY_PILOT_USER),
+                    publishedToAll || publishedUserIds.contains(user.getId()),
+                    latestPublishedVersionName,
+                    null
+                );
+            })
             .toList();
 
         return new PagedResponse<>(items, safePage, safePageSize, companyUsers.size());
@@ -319,6 +332,34 @@ public class MobileHomeService {
             .collect(java.util.stream.Collectors.toSet());
     }
 
+    private PublishedVersionSnapshot resolveLatestPublishedVersions(Long companyId, Long appId) {
+        String latestPublishedToAllVersionName = null;
+        Map<Long, String> latestByUser = new HashMap<>();
+
+        for (CompanyUserApplicationAccess access : companyUserAccessRepository.findByCompanyIdWithApplication(companyId)) {
+            ApplicationVersion version = access.getApplicationVersion();
+            if (!version.getApplication().getId().equals(appId)) {
+                continue;
+            }
+
+            String versionName = version.getVersionName();
+            if (access.getUserId() == null) {
+                if (latestPublishedToAllVersionName == null
+                    || compareVersionName(versionName, latestPublishedToAllVersionName) > 0) {
+                    latestPublishedToAllVersionName = versionName;
+                }
+                continue;
+            }
+
+            String existing = latestByUser.get(access.getUserId());
+            if (existing == null || compareVersionName(versionName, existing) > 0) {
+                latestByUser.put(access.getUserId(), versionName);
+            }
+        }
+
+        return new PublishedVersionSnapshot(latestPublishedToAllVersionName, latestByUser);
+    }
+
     private long countPublishedUsers(Long companyId, Long versionId, long totalCompanyUsers) {
         boolean publishedToAll = companyUserAccessRepository.existsByCompanyIdAndApplicationVersion_IdAndUserIdIsNull(
             companyId,
@@ -431,5 +472,11 @@ public class MobileHomeService {
         }
 
         return left.compareToIgnoreCase(right);
+    }
+
+    private record PublishedVersionSnapshot(
+        String latestPublishedToAllVersionName,
+        Map<Long, String> latestVersionByUserId
+    ) {
     }
 }

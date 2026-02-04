@@ -76,8 +76,7 @@ export default function PublishUsersScreen() {
         setTotal(response.total);
 
         if (!append) {
-          const publishedIds = response.items.filter((user) => user.published).map((user) => user.userId);
-          setSelectedIds(new Set(publishedIds));
+          setSelectedIds(new Set());
         }
       } catch (err) {
         setError(getApiErrorMessage(err, "Failed to load users"));
@@ -186,10 +185,16 @@ export default function PublishUsersScreen() {
               onPress={() => onToggle(item)}
               disabled={item.published}
             >
-              <Text style={styles.checkbox}>{checked ? "[x]" : "[ ]"}</Text>
+              {!item.published ? <Text style={styles.checkbox}>{checked ? "[x]" : "[ ]"}</Text> : null}
               <View style={styles.rowTextWrap}>
                 <Text style={styles.nameText}>{`${item.firstName ?? ""} ${item.lastName ?? ""}`.trim() || "-"}</Text>
                 <Text style={styles.emailText}>{item.email}</Text>
+                <Text style={styles.metaText}>
+                  Latest published version: {item.latestPublishedVersionName ?? "-"}
+                </Text>
+                <Text style={styles.metaText}>
+                  Installed: {item.installed == null ? "Unknown" : item.installed ? "Yes" : "No"}
+                </Text>
               </View>
               {item.published ? <Text style={styles.publishedTag}>Published</Text> : null}
             </Pressable>
@@ -320,6 +325,7 @@ const styles = StyleSheet.create({
   rowTextWrap: { flex: 1 },
   nameText: { color: "#1f3152", fontWeight: "600" },
   emailText: { color: "#61739b", marginTop: 2, fontSize: 12 },
+  metaText: { color: "#61739b", marginTop: 1, fontSize: 11 },
   publishedTag: {
     color: "#0c7f32",
     fontSize: 12,

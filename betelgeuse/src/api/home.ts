@@ -21,6 +21,8 @@ export type PublishUser = {
   email: string;
   pilotUser: boolean;
   published: boolean;
+  latestPublishedVersionName: string | null;
+  installed: boolean | null;
 };
 
 export type PagedResponse<T> = {

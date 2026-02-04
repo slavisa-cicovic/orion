@@ -6,6 +6,8 @@ public record MobilePublishUserResponse(
     String lastName,
     String email,
     boolean pilotUser,
-    boolean published
+    boolean published,
+    String latestPublishedVersionName,
+    Boolean installed
 ) {
 }
