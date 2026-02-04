@@ -4,6 +4,7 @@
 !.env.example
 alnilam/src/main/resources/application.yml
 alnilam/src/main/resources/application-local.yml
+**/*.tsbuildinfo
 
 # Logs
 *.log
