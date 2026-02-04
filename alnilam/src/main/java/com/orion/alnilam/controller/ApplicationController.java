@@ -36,11 +36,11 @@ public class ApplicationController {
 
     @GetMapping
     public ResponseEntity<PagedResponse<ApplicationResponse>> list(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "25") int pageSize,
-            @RequestParam(defaultValue = "displayName,asc") String sort,
-            @RequestParam(required = false) String search,
-            @RequestParam(required = false) Boolean isActive) {
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "pageSize", defaultValue = "25") int pageSize,
+            @RequestParam(name = "sort", defaultValue = "displayName,asc") String sort,
+            @RequestParam(name = "search", required = false) String search,
+            @RequestParam(name = "isActive", required = false) Boolean isActive) {
         return ResponseEntity.ok(applicationService.list(page, pageSize, sort, search, isActive));
     }
 

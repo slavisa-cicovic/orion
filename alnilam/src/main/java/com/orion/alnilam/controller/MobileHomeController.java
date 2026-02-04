@@ -46,9 +46,9 @@ public class MobileHomeController {
     @PreAuthorize("hasRole('COMPANY_ADMIN')")
     public ResponseEntity<PagedResponse<MobilePublishUserResponse>> listUsers(
         @PathVariable Long appId,
-        @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "50") int pageSize,
-        @RequestParam(required = false) String search,
+        @RequestParam(name = "page", defaultValue = "0") int page,
+        @RequestParam(name = "pageSize", defaultValue = "50") int pageSize,
+        @RequestParam(name = "search", required = false) String search,
         Authentication authentication
     ) {
         return ResponseEntity.ok(mobileHomeService.listPublishUsers(appId, page, pageSize, search, authentication));

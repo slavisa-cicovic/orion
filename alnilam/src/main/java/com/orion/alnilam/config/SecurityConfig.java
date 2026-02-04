@@ -7,6 +7,7 @@ import java.util.List;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -26,6 +27,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(
         HttpSecurity http,
         JwtAuthenticationFilter jwtAuthenticationFilter,
+        @Qualifier("corsConfigurationSource")
         CorsConfigurationSource corsConfigurationSource
     ) throws Exception {
         return http
