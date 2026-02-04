@@ -16,7 +16,7 @@ import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system/legacy";
 import * as IntentLauncher from "expo-intent-launcher";
-import { getHomeApps, type HomeAppCard } from "@src/api/home";
+import { getHomeApps, reportInstallations, type HomeAppCard } from "@src/api/home";
 import ScrollScreen from "@src/components/layout/scroll-screen";
 import ApiFeedback from "@src/components/ui/api-feedback";
 import { API_BASE_URL } from "@src/constants/config";
@@ -41,6 +41,8 @@ function resolveUploadUrl(path: string | null): string | undefined {
 
 const DOWNLOAD_STATE_KEY = "betelgeuse.home.download-state";
 const DOWNLOAD_DIR = `${FileSystem.documentDirectory ?? ""}downloads/`;
+const DEVICE_ID_KEY = "betelgeuse.device-id";
+const INSTALLATION_REPORT_KEY = "betelgeuse.installation-report-hash";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -50,6 +52,7 @@ export default function HomeScreen() {
   const [installedPackages, setInstalledPackages] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const appsRef = useRef<HomeAppCard[]>([]);
+  const reportHashRef = useRef<string>("");
 
   const versionKey = useCallback((app: HomeAppCard) => `${app.appId}:${app.versionName}`, []);
 
@@ -88,8 +91,55 @@ export default function HomeScreen() {
     const checks = await Promise.all(
       sourceApps.map(async (app) => [app.appPackageName, await isAndroidAppInstalled(app.appPackageName)] as const),
     );
-    setInstalledPackages(Object.fromEntries(checks));
+    const installedMap = Object.fromEntries(checks);
+    setInstalledPackages(installedMap);
+    await reportInstallationStatus(sourceApps, installedMap);
   }, []);
+
+  const getOrCreateDeviceId = useCallback(async () => {
+    const existing = await AsyncStorage.getItem(DEVICE_ID_KEY);
+    if (existing) return existing;
+
+    const created = `android-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    await AsyncStorage.setItem(DEVICE_ID_KEY, created);
+    return created;
+  }, []);
+
+  const reportInstallationStatus = useCallback(
+    async (sourceApps: HomeAppCard[], installedMap: Record<string, boolean>) => {
+      if (Platform.OS !== "android" || sourceApps.length === 0) return;
+
+      const deviceId = await getOrCreateDeviceId();
+      const payload = sourceApps.map((app) => ({
+        appId: app.appId,
+        packageName: app.appPackageName,
+        versionName: app.versionName,
+        installed: installedMap[app.appPackageName] === true,
+        platform: "ANDROID",
+        deviceId,
+      }));
+
+      const currentHash = JSON.stringify(
+        payload.map((item) => `${item.appId}:${item.versionName}:${item.installed ? 1 : 0}`),
+      );
+      if (reportHashRef.current === currentHash) return;
+
+      const persistedHash = await AsyncStorage.getItem(INSTALLATION_REPORT_KEY);
+      if (persistedHash === currentHash) {
+        reportHashRef.current = currentHash;
+        return;
+      }
+
+      try {
+        await reportInstallations(payload);
+        reportHashRef.current = currentHash;
+        await AsyncStorage.setItem(INSTALLATION_REPORT_KEY, currentHash);
+      } catch {
+        // Report is best-effort; ignore failures here.
+      }
+    },
+    [getOrCreateDeviceId],
+  );
 
   const loadApps = useCallback(async () => {
     try {

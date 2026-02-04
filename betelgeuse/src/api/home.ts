@@ -32,6 +32,15 @@ export type PagedResponse<T> = {
   total: number;
 };
 
+export type InstallationReportItem = {
+  appId: number;
+  packageName: string;
+  versionName: string;
+  installed: boolean;
+  platform: string;
+  deviceId: string;
+};
+
 export async function getHomeApps(): Promise<HomeAppCard[]> {
   const res = await axiosInstance.get<HomeAppCard[]>("/mobile/home/apps");
   return res.data;
@@ -57,4 +66,9 @@ export async function publishToSelectedUsers(appId: number, userIds: number[]): 
     userIds,
   });
   return res.data;
+}
+
+export async function reportInstallations(items: InstallationReportItem[]): Promise<void> {
+  if (!items.length) return;
+  await axiosInstance.post("/mobile/installations/report", { items });
 }

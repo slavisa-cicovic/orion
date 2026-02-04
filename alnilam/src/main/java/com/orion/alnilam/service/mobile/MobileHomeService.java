@@ -4,6 +4,7 @@ import com.orion.alnilam.domain.application.ApplicationVersion;
 import com.orion.alnilam.domain.application.CompanyApplicationAccess;
 import com.orion.alnilam.domain.application.CompanyUserApplicationAccess;
 import com.orion.alnilam.domain.enums.Role;
+import com.orion.alnilam.domain.mobile.UserAppInstallation;
 import com.orion.alnilam.domain.user.User;
 import com.orion.alnilam.dto.request.MobilePublishUsersRequest;
 import com.orion.alnilam.dto.response.MobileHomeAppResponse;
@@ -11,6 +12,7 @@ import com.orion.alnilam.dto.response.MobilePublishUserResponse;
 import com.orion.alnilam.dto.response.PagedResponse;
 import com.orion.alnilam.repository.CompanyApplicationAccessRepository;
 import com.orion.alnilam.repository.CompanyUserApplicationAccessRepository;
+import com.orion.alnilam.repository.UserAppInstallationRepository;
 import com.orion.alnilam.repository.UserRepository;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,15 +31,18 @@ public class MobileHomeService {
     private final UserRepository userRepository;
     private final CompanyApplicationAccessRepository companyAccessRepository;
     private final CompanyUserApplicationAccessRepository companyUserAccessRepository;
+    private final UserAppInstallationRepository userAppInstallationRepository;
 
     public MobileHomeService(
         UserRepository userRepository,
         CompanyApplicationAccessRepository companyAccessRepository,
-        CompanyUserApplicationAccessRepository companyUserAccessRepository
+        CompanyUserApplicationAccessRepository companyUserAccessRepository,
+        UserAppInstallationRepository userAppInstallationRepository
     ) {
         this.userRepository = userRepository;
         this.companyAccessRepository = companyAccessRepository;
         this.companyUserAccessRepository = companyUserAccessRepository;
+        this.userAppInstallationRepository = userAppInstallationRepository;
     }
 
     public List<MobileHomeAppResponse> listApps(Authentication authentication) {
@@ -79,6 +84,7 @@ public class MobileHomeService {
         ApplicationVersion targetVersion = resolveCompanyVersion(appId, companyId);
         List<User> companyUsers = listCompanyUsers(companyId, search);
         PublishedVersionSnapshot publishedSnapshot = resolveLatestPublishedVersions(companyId, appId);
+        Map<Long, Boolean> installedByUserId = resolveInstalledStatusByUserId(companyUsers, appId, publishedSnapshot);
 
         boolean publishedToAll = companyUserAccessRepository.existsByCompanyIdAndApplicationVersion_IdAndUserIdIsNull(
             companyId,
@@ -114,7 +120,7 @@ public class MobileHomeService {
                     user.getRoles().contains(Role.COMPANY_PILOT_USER),
                     publishedToAll || publishedUserIds.contains(user.getId()),
                     latestPublishedVersionName,
-                    null
+                    installedByUserId.get(user.getId())
                 );
             })
             .toList();
@@ -358,6 +364,52 @@ public class MobileHomeService {
         }
 
         return new PublishedVersionSnapshot(latestPublishedToAllVersionName, latestByUser);
+    }
+
+    private Map<Long, Boolean> resolveInstalledStatusByUserId(
+        List<User> users,
+        Long appId,
+        PublishedVersionSnapshot publishedSnapshot
+    ) {
+        if (users.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Long> userIds = users.stream().map(User::getId).toList();
+        List<UserAppInstallation> installations = userAppInstallationRepository.findByUserIdInAndApplicationId(userIds, appId);
+
+        Map<Long, Boolean> output = new HashMap<>();
+        for (User user : users) {
+            String expectedVersion = publishedSnapshot.latestVersionByUserId().get(user.getId());
+            if (publishedSnapshot.latestPublishedToAllVersionName() != null
+                && (expectedVersion == null
+                    || compareVersionName(publishedSnapshot.latestPublishedToAllVersionName(), expectedVersion) > 0)) {
+                expectedVersion = publishedSnapshot.latestPublishedToAllVersionName();
+            }
+
+            if (!StringUtils.hasText(expectedVersion)) {
+                output.put(user.getId(), null);
+                continue;
+            }
+
+            List<UserAppInstallation> userInstallations = installations.stream()
+                .filter(installation -> installation.getUserId().equals(user.getId()))
+                .toList();
+            if (userInstallations.isEmpty()) {
+                output.put(user.getId(), null);
+                continue;
+            }
+
+            final String expectedVersionFinal = expectedVersion;
+            boolean installed = userInstallations.stream().anyMatch(installation ->
+                installation.isInstalled()
+                    && StringUtils.hasText(installation.getVersionName())
+                    && installation.getVersionName().trim().equalsIgnoreCase(expectedVersionFinal.trim())
+            );
+            output.put(user.getId(), installed);
+        }
+
+        return output;
     }
 
     private long countPublishedUsers(Long companyId, Long versionId, long totalCompanyUsers) {
